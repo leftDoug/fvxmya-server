@@ -7,13 +7,9 @@ import {
   create,
   update,
   remove,
-  addWorkers,
-  erase,
-  updateWorkers,
-  getToMs,
   getInfo,
-  getInfoX
-  // removeAll
+  getAllFrom
+  // getToms
 } from '../controllers/organization.controller.js';
 import { findByPk } from '../middlewares/findByPk.js';
 
@@ -21,15 +17,12 @@ const router = Router();
 
 router.get('/', getAll);
 router.get('/:id', findByPk, getById);
-router.get('/:id/info', findByPk, getInfo);
-router.get('/info/:id', findByPk, getInfoX);
-router.get('/:id/toms', findByPk, getToMs);
-router.get('/:id/workers', findByPk, getWorkers);
+router.get('/info/:id', findByPk, getInfo);
+// router.get('/types-of-meetings/:id', findByPk, getToms);
+router.get('/workers/:id', findByPk, getWorkers);
+router.get('/worker/:id', getAllFrom);
 router.post('/', create);
-router.post('/:id', findByPk, addWorkers);
 router.patch('/:id', findByPk, update);
-router.patch('/:id/workers', findByPk, updateWorkers);
-router.patch('/remove/:id', findByPk, remove);
-router.delete('/remove/:id', findByPk, erase);
+router.delete('/remove/:id', findByPk, remove);
 
 export default router;

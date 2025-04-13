@@ -6,11 +6,11 @@ import { TypeOfMeeting } from './TypeOfMeeting.js';
 export const Organization = sequelize.define(
   'organization',
   {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
+    // id: {
+    //   type: DataTypes.INTEGER,
+    //   primaryKey: true,
+    //   autoIncrement: true
+    // },
     name: {
       type: DataTypes.STRING,
       unique: true,

@@ -2,10 +2,16 @@
 GET http://localhost:4000/api/organizations HTTP/1.1
 
 ### getById
-GET http://localhost:4000/api/organizations/3 HTTP/1.1
+GET http://localhost:4000/api/organizations/26 HTTP/1.1
+
+### getAllFrom
+GET http://localhost:4000/api/organizations/worker/6b4f78c0-efee-11ef-a14b-dbf1a2c78c20 HTTP/1.1
 
 ### getWorkers
 GET http://localhost:4000/api/organizations/26/workers HTTP/1.1
+
+### getTypesOfMeetings
+GET http://localhost:4000/api/organizations/types-of-meetings/26 HTTP/1.1
 
 ### update
 PATCH http://localhost:4000/api/organizations/6 HTTP/1.1

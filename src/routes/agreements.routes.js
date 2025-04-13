@@ -7,12 +7,13 @@ import {
   create,
   update,
   getResponses,
-  setCompleted
+  setCompleted,
+  getAllFromUser
 } from '../controllers/agreement.controller.js';
 
 const router = Router();
 
-router.get('/', getAll);
+router.get('/', getAllFromUser);
 router.get('/:id', getById);
 router.get('/info/:id', getInfo);
 router.get('/responses/:id', getResponses);

@@ -3,6 +3,7 @@ import cors from 'cors';
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
+import barFooRoutes from './routes/bar-foo.routes.js';
 import areasRoutes from './routes/areas.routes.js';
 import organizationsRoutes from './routes/organizations.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -55,6 +56,7 @@ const swaggerSpec = swaggerJSDoc(options);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // routes
+app.use('', barFooRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/areas', areasRoutes);
 app.use('/api/organizations', organizationsRoutes);
@@ -66,6 +68,11 @@ app.use('/api/meetings', meetingsRoutes);
 app.use('/api/responses', responsesRoutes);
 app.use('/api/agreements', agreementsRoutes);
 app.use('/api/topics', topicsRoutes);
+app.use((req, res) => {
+  res.status(404).json({
+    message: 'Ruta no encontrada'
+  });
+});
 app.use(validateFields);
 
 export default app;

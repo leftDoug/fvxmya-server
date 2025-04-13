@@ -15,7 +15,7 @@ export const getAll = async (req = request, res = response) => {
 
     return res.status(500).json({
       ok: false,
-      msg: 'Error al listar los Roles.'
+      msg: 'Error al listar los Roles'
     });
   }
 };

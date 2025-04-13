@@ -1282,3 +1282,26 @@ export const setClose = async (req = request, res = response) => {
     });
   }
 };
+
+export const getOrganization = async (req = request, res = response) => {
+  const { id } = req.params;
+
+  try {
+    const dbMeeting = await Meeting.findByPk(id, { include: TypeOfMeeting });
+    const dbOrganization = await Organization.findByPk(
+      dbMeeting.typesOfMeeting.idOrganization
+    );
+
+    return res.json({
+      ok: true,
+      arg: dbOrganization
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      ok: false,
+      msg: 'Error al obtener la Organización'
+    });
+  }
+};

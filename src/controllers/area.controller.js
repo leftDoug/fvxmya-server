@@ -1,26 +1,19 @@
 import { request, response } from 'express';
 
+import { sequelize } from '../db/config.js';
 import { Area } from '../models/Area.js';
+import { User } from '../models/User.js';
 
-export const getAll = async (req = request, res = response) => {
-  // XXX activarlo para saber de donde viene la request
-  // const origin = req.header('origin');
-
-  // console.log(pc.blue(pc.bold('ORIGIN:')), pc.bgBlue(pc.bold(origin)));
-
+export const getAll = async (req, res = response) => {
   try {
     const dbAreas = await Area.findAll();
-
     return res.json({
-      ok: true,
-      arg: dbAreas
+      data: dbAreas
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al listar las Áreas.'
+      message: 'Error al listar las Áreas'
     });
   }
 };
@@ -30,49 +23,44 @@ export const getById = async (req = request, res = response) => {
 
   try {
     const dbArea = await Area.findByPk(id);
-
     return res.json({
-      ok: true,
-      arg: dbArea
+      data: dbArea
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al buscar el Área.'
+      message: 'Error al buscar el Área'
     });
   }
 };
 
 export const create = async (req = request, res = response, next) => {
   const { name } = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    const dbArea = await Area.findOne({ where: { name } });
+    const dbArea = await Area.findOne({ where: { name }, transaction });
 
     if (dbArea) {
       return res.status(400).json({
-        ok: false,
-        msg: 'Ya existe un Área con este nombre.'
+        message: 'Ya existe un Área con este nombre'
       });
     }
 
-    await Area.create({ name });
-
+    const area = await Area.create({ name }, { transaction });
+    await transaction.commit();
     return res.status(201).json({
-      ok: true,
-      msg: 'Área creada correctamente.'
+      message: 'Área creada',
+      data: area
     });
   } catch (err) {
+    await transaction.rollback();
     if (err.name === 'SequelizeValidationError') {
       next(err);
     } else {
       console.error(err);
-
       return res.status(500).json({
-        ok: false,
-        msg: 'Error al crear el Área.'
+        message: 'Error al crear el Área.'
       });
     }
   }
@@ -81,32 +69,35 @@ export const create = async (req = request, res = response, next) => {
 export const update = async (req = request, res = response, next) => {
   const { id } = req.params;
   const { name } = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    const dbArea = await Area.findOne({ where: { name } });
+    const dbArea = await Area.findOne({ where: { name }, transaction });
 
-    if (dbArea && dbArea.id !== id) {
+    if (dbArea && dbArea.id !== parseInt(id, 10)) {
       return res.status(400).json({
-        ok: true,
-        msg: 'Ya existe un Área con ese nombre.'
+        message: 'Ya existe un Área con ese nombre'
       });
     }
 
-    await Area.update({ name }, { where: { id } });
-
+    await Area.update(
+      { name },
+      { where: { id: parseInt(id, 10) }, transaction }
+    );
+    const area = await Area.findByPk(parseInt(id, 10), { transaction });
+    await transaction.commit();
     return res.json({
-      ok: true,
-      msg: 'Área actualizada correctamente.'
+      message: 'Área actualizada',
+      data: area
     });
   } catch (err) {
+    await transaction.rollback();
     if (err.name === 'SequelizeValidationError') {
       next(err);
     } else {
       console.error(err);
-
       return res.status(500).json({
-        ok: false,
-        msg: 'Error al actualizar el Área.'
+        message: 'Error al actualizar el Área'
       });
     }
   }
@@ -114,20 +105,19 @@ export const update = async (req = request, res = response, next) => {
 
 export const remove = async (req = request, res = response) => {
   const { id } = req.params;
+  const transaction = await sequelize.transaction();
 
   try {
-    await Area.update({ state: false }, { where: { id } });
-
+    await Area.destroy({ where: { id: parseInt(id, 10) }, transaction });
+    await transaction.commit();
     return res.json({
-      ok: true,
-      msg: 'Área eliminada.'
+      message: 'Área eliminada'
     });
   } catch (err) {
+    await transaction.rollback();
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al eliminar el Área.'
+      message: 'Error al eliminar el Área.'
     });
   }
 };
@@ -136,32 +126,21 @@ export const getWorkers = async (req = request, res = response) => {
   const { id } = req.params;
 
   try {
-    const dbArea = await Area.findByPk(id);
-    const dbWorkers = await dbArea.getUsers();
-
-    res.json({
-      ok: true,
-      arg: dbWorkers
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      ok: false,
-      msg: 'Error al obtener los Trabajadores.'
-    });
-  }
-};
-
-export const removeAll = async (req, res) => {
-  try {
-    await Area.truncate();
+    const dbArea = await Area.findByPk(id, { include: User });
+    const workers = dbArea.users.map((w) => ({
+      id: w.id,
+      name: w.name,
+      occupation: w.occupation,
+      email: w.email
+    }));
 
     return res.json({
-      ok: true,
-      msg: 'Áreas eliminadas.'
+      data: workers
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: 'Error al obtener los Trabajadores'
+    });
   }
 };

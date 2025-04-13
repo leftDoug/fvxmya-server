@@ -7,6 +7,8 @@ import { getDateFromDb, setDateToDb } from '../helpers/utils.js';
 import { User } from '../models/User.js';
 import { Meeting } from '../models/Meeting.js';
 import { Response } from '../models/Response.js';
+import { getIdUser } from '../helpers/jwt.js';
+import picocolors from 'picocolors';
 
 // const getStringDate = (date) => {
 //   const tempDate = new Date(date);
@@ -224,6 +226,49 @@ export const setCompleted = async (req = request, res = response) => {
     return res.status(500).json({
       ok: false,
       msg: 'Error al completar el acuerdo'
+    });
+  }
+};
+
+export const getAllFromUser = async (req = request, res = response) => {
+  const { authorization } = req.headers;
+  const idUser = getIdUser(authorization);
+
+  try {
+    const dbAgreements = await Agreement.findAll({
+      where: { idResponsible: idUser },
+      include: [User, Meeting]
+    });
+
+    const agreements = dbAgreements.map((agreement) => {
+      return {
+        id: agreement.id,
+        number: agreement.number,
+        content: agreement.content,
+        compilanceDate: agreement.compilanceDate,
+        completed: agreement.completed,
+        state: agreement.state,
+        responsible: {
+          id: agreement.user.id,
+          name: agreement.user.name
+        },
+        meeting: {
+          id: agreement.meeting.id,
+          name: agreement.meeting.name
+        }
+      };
+    });
+
+    return res.json({
+      ok: true,
+      arg: agreements
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      ok: false,
+      msg: 'Error al obtener los Acuerdos.'
     });
   }
 };

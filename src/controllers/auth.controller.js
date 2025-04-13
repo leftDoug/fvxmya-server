@@ -3,10 +3,13 @@ import pc from 'picocolors';
 import { QueryTypes } from 'sequelize';
 import { request, response } from 'express';
 
-import { generateJWT } from '../helpers/jwt.js';
+import { generateJWT, getIdUser } from '../helpers/jwt.js';
 import { sequelize } from '../db/config.js';
 
 import { User } from '../models/User.js';
+import { Role } from '../models/Role.js';
+import { Area } from '../models/Area.js';
+import { Organization } from '../models/Organization.js';
 
 // FIXME arreglar los mensajes de error para usuario o contrasena incorrecta
 export const login = async (req = request, res = response) => {
@@ -22,22 +25,25 @@ export const login = async (req = request, res = response) => {
       });
     }
 
-    const validPassword = bcrypt.compareSync(password, dbUser.password);
+    const passwdIsValid = bcrypt.compareSync(password, dbUser.password);
 
-    if (!validPassword) {
+    if (!passwdIsValid) {
       return res.status(400).json({
         ok: false,
         msg: 'Contraseña incorrecta'
       });
     }
 
-    const token = await generateJWT(dbUser.id, username);
+    const token = await generateJWT(
+      dbUser.id,
+      dbUser.idRole === 1 ? true : false
+    );
 
     // XXX ver como se puede mandar el token a la cache
     return res.json({
       ok: true,
-      id: dbUser.id,
-      username,
+      // id: dbUser.id,
+      // username,
       token: token
     });
   } catch (err) {
@@ -112,14 +118,13 @@ export const register = async (req = request, res = response, next) => {
   } catch (err) {
     if (err.name === 'SequelizeValidationError') {
       next(err);
-    } else {
-      console.error(err);
-
-      return res.status(500).json({
-        ok: false,
-        msg: 'Error al crear el Usuario.'
-      });
     }
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      msg: 'Error al crear el Usuario.'
+    });
   }
 };
 
@@ -141,29 +146,13 @@ export const tokenRenewal = async (req = request, res = response) => {
 
 export const update = async (req = request, res = response, next) => {
   const { id } = req.params;
-  const {
-    name,
-    occupation,
-    email,
-    idArea,
-    username,
-    oldPassword,
-    newPassword,
-    idRole
-  } = req.body;
+  const { occupation, email, idArea, idRole } = req.body;
+
+  const transaction = await sequelize.transaction();
 
   try {
     const dbUser = await User.findByPk(id);
-    let user = await User.findOne({ where: { username } });
-
-    if (user && user.id !== id) {
-      return res.status(400).json({
-        ok: false,
-        msg: 'Este nombre de usuario ya está en uso.'
-      });
-    }
-
-    user = await User.findOne({ where: { email } });
+    let user = await User.findOne({ where: { email } });
 
     if (user && user.id !== id) {
       return res.status(400).json({
@@ -172,7 +161,7 @@ export const update = async (req = request, res = response, next) => {
       });
     }
 
-    const users = await User.findAll({ where: { name } });
+    const users = await User.findAll({ where: { name: dbUser.name } });
     const coincidence = users.some(
       (user) =>
         user !== dbUser &&
@@ -187,51 +176,52 @@ export const update = async (req = request, res = response, next) => {
       });
     }
 
-    const validPassword = bcrypt.compareSync(oldPassword, dbUser.password);
+    // const validPassword = bcrypt.compareSync(oldPassword, dbUser.password);
 
-    if (!validPassword) {
-      return res.status(400).json({
-        ok: false,
-        msg: 'Contraseña incorrecta'
-      });
-    }
+    // if (!validPassword) {
+    //   return res.status(400).json({
+    //     ok: false,
+    //     msg: 'Contraseña incorrecta'
+    //   });
+    // }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        ok: false,
-        msg: 'La contraseña debe tener 6 caracteres o más.'
-      });
-    }
+    // if (newPassword.length < 6) {
+    //   return res.status(400).json({
+    //     ok: false,
+    //     msg: 'La contraseña debe tener 6 caracteres o más.'
+    //   });
+    // }
 
-    const salt = bcrypt.genSaltSync();
+    // const salt = bcrypt.genSaltSync();
 
-    const newHashedPassword = bcrypt.hashSync(newPassword, salt);
+    // const newHashedPassword = bcrypt.hashSync(newPassword, salt);
 
     await User.update(
       {
-        name,
         occupation,
         email,
         idArea,
-        username,
-        password: newHashedPassword,
         idRole
       },
-      { where: { id } }
+      { where: { id }, transaction }
     );
 
-    const token = await generateJWT(dbUser.id, username);
+    await transaction.commit();
+
+    // const token = await generateJWT(dbUser.id, username);
 
     return res.json({
       ok: true,
-      msg: 'Usuario actualizado.',
-      token
+      msg: 'Usuario actualizado'
+      // token
     });
   } catch (error) {
     if (error.name === 'SequelizeValidationError') {
       next(error);
     }
     console.error(error);
+
+    transaction.rollback();
 
     return res.status(500).json({
       ok: false,
@@ -240,15 +230,25 @@ export const update = async (req = request, res = response, next) => {
   }
 };
 
-export const getAllUsers = async (req = request, res = response) => {
+export const getUsers = async (req = request, res = response) => {
   try {
-    const dbUsers = await sequelize.query(`SELECT * FROM view_users`, {
-      type: QueryTypes.SELECT
+    const dbUsers = await User.findAll({ include: [Role, Area] });
+    const users = dbUsers.map((user) => {
+      return {
+        id: user.id,
+        name: user.name,
+        occupation: user.occupation,
+        email: user.email,
+        area: user.area.name,
+        role: user.role.role,
+        username: user.username,
+        state: user.state
+      };
     });
 
     res.json({
       ok: true,
-      arg: dbUsers
+      arg: users
     });
   } catch (error) {
     console.error(error);
@@ -266,16 +266,13 @@ export const getWorkers = async (req = request, res = response) => {
       type: QueryTypes.SELECT
     });
 
-    res.json({
-      ok: true,
-      arg: dbWorkers
+    return res.json({
+      data: dbWorkers
     });
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      ok: false,
-      msg: 'Error al obtener los Trabajadores.'
+    return res.status(500).json({
+      message: 'Error al obtener los Trabajadores.'
     });
   }
 };
@@ -327,6 +324,107 @@ export const getInfo = async (req = request, res = response) => {
     return res.status(500).json({
       ok: false,
       msg: 'Error al obtener el Usuario.'
+    });
+  }
+};
+
+export const setLock = async (req = request, res = response) => {
+  const { id } = req.params;
+
+  const transaction = await sequelize.transaction();
+  try {
+    await User.update({ state: false }, { where: { id }, transaction });
+    await transaction.commit();
+
+    return res.json({
+      ok: true,
+      msg: 'Usuario bloqueado'
+    });
+  } catch (error) {
+    console.log(error);
+
+    transaction.rollback();
+
+    return res.status(500).json({
+      ok: false,
+      msg: 'Error al bloquear el Usuario'
+    });
+  }
+};
+
+export const setUnlock = async (req = request, res = response) => {
+  const { id } = req.params;
+
+  const transaction = await sequelize.transaction();
+  try {
+    await User.update({ state: true }, { where: { id }, transaction });
+    await transaction.commit();
+
+    return res.json({
+      ok: true,
+      msg: 'Usuario desbloqueado'
+    });
+  } catch (error) {
+    console.log(error);
+
+    transaction.rollback();
+
+    return res.status(500).json({
+      ok: false,
+      msg: 'Error al desbloquear el Usuario'
+    });
+  }
+};
+
+export const isAdmin = async (req = request, res = response) => {
+  const { authorization } = req.headers;
+  const idUser = getIdUser(authorization);
+
+  try {
+    const dbUser = await User.findByPk(idUser, { include: Role });
+
+    if (dbUser.role.role === 'Administrador') {
+      return res.json({
+        ok: true,
+        status: true
+      });
+    } else {
+      return res.json({
+        ok: true,
+        status: false
+      });
+    }
+  } catch (error) {
+    console.log(err);
+
+    return res.status(500).json({
+      ok: false,
+      msg: 'Error al verificar el rol del usuario'
+    });
+  }
+};
+
+export const getOrganizationsFromUser = async (
+  req = request,
+  res = response
+) => {
+  const { id } = req.params;
+
+  try {
+    const dbOrganizations = await Organization.findAll({
+      where: { idLeader: id }
+    });
+
+    return res.json({
+      ok: true,
+      arg: dbOrganizations
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      ok: true,
+      msg: 'Error al obtener las Organizaciones'
     });
   }
 };

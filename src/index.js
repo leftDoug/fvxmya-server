@@ -30,10 +30,14 @@ import {
 import { getUserModel, User } from './models/User.js';
 
 import setupAssociations from './models/associations.js';
+import { Bar, getBarModel } from './models/Bar.js';
+import { Foo, getFooModel } from './models/Foo.js';
 
 dotenv.config();
 
 const models = {
+  Bar: getBarModel(),
+  Foo: getFooModel(),
   Agenda: getAgendaModel(),
   Agreement: getAgreementModel(),
   Area: getAreaModel(),
@@ -47,19 +51,24 @@ const models = {
   MeetingWorker: getMeetingWorkerModel(),
   OrganizationMember: getOrganizationMemberModel()
 };
-
 setupAssociations(models);
 
 async function dbConnection() {
   try {
     await sequelize.authenticate();
+    // await sequelize.sync();
+    // await Bar.sync({ force: true });
+    // await Foo.sync({ force: true });
     // await Agreement.sync({ force: true });
-    // await Organization.sync({ alter: true });
+    // await Area.sync({ force: true });
+    // await Organization.sync({ force: true });
+    // await Role.sync({ force: true });
+    // await User.sync({ force: true });
     // await TypeOfMeeting.sync({ alter: true });
     // await Agenda.sync({ force: true });
     // await Topic.sync({ force: true });
-    await createViews();
-    await createFunctions();
+    // await createViews();
+    // await createFunctions();
 
     console.log(
       pc.green(pc.bold('Connection has been established successfully'))

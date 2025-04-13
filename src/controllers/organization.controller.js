@@ -6,28 +6,29 @@ import { QueryTypes, where } from 'sequelize';
 import { OrganizationMember } from '../models/OrganizationMember.js';
 import picocolors from 'picocolors';
 import { User } from '../models/User.js';
+import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
 
 export const getAll = async (req = request, res = response) => {
   try {
-    const dbOrganizations = await sequelize.query(
-      `
-      SELECT * FROM view_organizations
-      `,
-      {
-        type: QueryTypes.SELECT
-      }
-    );
+    const dbOrganizations = await Organization.findAll({
+      include: User
+    });
 
+    const organizations = dbOrganizations.map((organization) => ({
+      id: organization.id,
+      name: organization.name,
+      leader: {
+        id: organization.idLeader,
+        name: organization.user.name
+      }
+    }));
     return res.json({
-      ok: true,
-      arg: dbOrganizations
+      data: organizations
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al listar las Organizaciones.'
+      message: 'Error al listar las Organizaciones'
     });
   }
 };
@@ -37,46 +38,55 @@ export const getById = async (req = request, res = response) => {
 
   try {
     const dbOrganization = await Organization.findByPk(id);
-
     return res.json({
-      ok: true,
-      arg: dbOrganization
+      data: dbOrganization
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al buscar la Organización.'
+      message: 'Error al buscar la Organización'
     });
   }
 };
 
-export const getInfoX = async (req = request, res = response) => {
+export const getAllFrom = async (req = request, res = response) => {
   const { id } = req.params;
 
   try {
-    const dbOrganization = await Organization.findByPk(id, { include: User });
-
-    const organization = {
-      id: dbOrganization.id,
-      name: dbOrganization.name,
+    let dbOrgsAsLeader = await Organization.findAll({
+      where: { idLeader: id },
+      include: User
+    });
+    dbOrgsAsLeader = dbOrgsAsLeader.map((organization) => ({
+      id: organization.id,
+      name: organization.name,
       leader: {
-        id: dbOrganization.user.id,
-        name: dbOrganization.user.name
+        id: organization.idLeader,
+        name: organization.user.name
       }
-    };
-
+    }));
+    const dbOrgsAsMember = await User.findByPk(id, {
+      include: { model: Organization, as: 'orgs' }
+    });
+    const organizations = [
+      ...dbOrgsAsLeader,
+      ...dbOrgsAsMember.orgs
+        .filter(
+          (orgMem) => !dbOrgsAsLeader.some((orgLea) => orgLea.id === orgMem.id)
+        )
+        .map((org) => ({
+          id: org.id,
+          name: org.name,
+          idLeader: org.idLeader
+        }))
+    ];
     return res.json({
-      ok: true,
-      arg: organization
+      data: organizations
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al obtener la información de la Organización'
+      message: 'Error al buscar las Organizaciones'
     });
   }
 };
@@ -85,96 +95,164 @@ export const getInfo = async (req = request, res = response) => {
   const { id } = req.params;
 
   try {
-    const result = await sequelize.query(
-      `
-      SELECT fn_organization_getinfo(:id,'dborg');
-      FETCH ALL IN dborg
-      `,
-      {
-        replacements: { id: id },
-        type: QueryTypes.SELECT
-      }
-    );
-
-    const organization = result[1];
-
+    const dbOrganization = await Organization.findByPk(id, {
+      include: [{ model: User }, { model: User, as: 'members' }]
+    });
+    const organization = {
+      id: dbOrganization.id,
+      name: dbOrganization.name,
+      leader: {
+        id: dbOrganization.user.id,
+        name: dbOrganization.user.name
+      },
+      members: dbOrganization.members.map((m) => ({
+        id: m.id,
+        name: m.name
+      }))
+    };
     return res.json({
-      ok: true,
-      arg: organization
+      data: organization
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al buscar la Organización.'
+      message: 'Error al obtener la información de la Organización'
     });
   }
 };
 
 export const create = async (req = request, res = response, next) => {
-  const { name, idLeader } = req.body;
+  const { name, idLeader, members } = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    let dbOrganization = await Organization.findOne({ where: { name } });
+    let dbOrganization = await Organization.findOne({
+      where: { name },
+      transaction
+    });
 
     if (dbOrganization) {
       return res.status(400).json({
-        ok: false,
-        msg: 'Ya existe una Organización con este nombre.'
+        message: 'Ya existe una Organización con este nombre'
       });
     }
 
-    dbOrganization = await Organization.create({ name, idLeader });
-
+    dbOrganization = await Organization.create(
+      { name, idLeader },
+      { transaction }
+    );
+    await OrganizationMember.bulkCreate(
+      members.map((m) => {
+        return {
+          idOrganization: dbOrganization.id,
+          idMember: m.id
+        };
+      }),
+      { transaction }
+    );
+    const dbOrgInfo = await Organization.findByPk(parseInt(dbOrganization.id), {
+      include: [{ model: User }, { model: User, as: 'members' }],
+      transaction
+    });
+    const organization = {
+      id: dbOrgInfo.id,
+      name: dbOrgInfo.name,
+      leader: dbOrgInfo.user.name
+    };
+    await transaction.commit();
     return res.status(201).json({
-      ok: true,
-      id: dbOrganization.id,
-      msg: 'Organización creada correctamente.'
+      message: 'Organización creada',
+      data: organization
     });
   } catch (err) {
+    await transaction.rollback();
     if (err.name === 'SequelizeValidationError') {
       next(err);
     } else {
       console.error(err);
-
       return res.status(500).json({
-        ok: false,
-        msg: 'Error al crear la Organizoción.'
+        message: 'Error al crear la Organización'
       });
     }
   }
 };
 
+// FIXME arreglar, xk deben venir los miembros tb
 export const update = async (req = request, res = response, next) => {
   const { id } = req.params;
-  const { name, idLeader } = req.body;
+  const { name, idLeader, members } = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    const dbOrganization = await Organization.findOne({ where: { name } });
+    const dbOrganization = await Organization.findOne({
+      where: { name },
+      transaction
+    });
 
     if (dbOrganization && dbOrganization.id !== parseInt(id)) {
       return res.status(400).json({
-        ok: false,
-        msg: 'Ya existe una Organización con ese nombre.'
+        message: 'Ya existe una Organización con ese nombre'
       });
     }
 
-    await Organization.update({ name, idLeader }, { where: { id } });
+    const dbOMs = await OrganizationMember.findAll({
+      where: { idOrganization: parseInt(id) },
+      transaction
+    });
 
+    await Organization.update(
+      { name, idLeader },
+      { where: { id }, transaction }
+    );
+    await OrganizationMember.destroy({
+      where: {
+        idOrganization: parseInt(id),
+        idMember: dbOMs
+          .filter((dbOM) => !members.some((m) => m.id === dbOM.idMember))
+          .map((dbOM) => dbOM.idMember)
+      },
+      transaction
+    });
+    await OrganizationMember.bulkCreate(
+      members
+        .filter((m) => !dbOMs.some((dbOM) => dbOM.idMember === m.id))
+        .map((m) => {
+          return {
+            idOrganization: parseInt(id),
+            idMember: m.id
+          };
+        }),
+      { transaction }
+    );
+    const dbOrgInfo = await Organization.findByPk(parseInt(id), {
+      include: [{ model: User }, { model: User, as: 'members' }],
+      transaction
+    });
+    const organization = {
+      id: dbOrgInfo.id,
+      name: dbOrgInfo.name,
+      leader: {
+        id: dbOrgInfo.user.id,
+        name: dbOrgInfo.user.name
+      },
+      members: dbOrgInfo.members.map((m) => ({
+        id: m.id,
+        name: m.name
+      }))
+    };
+    await transaction.commit();
     return res.json({
-      ok: true,
-      msg: 'Organización actualizada correctamente.'
+      message: 'Organización actualizada',
+      data: organization
     });
   } catch (err) {
+    await transaction.rollback();
     if (err.name === 'SequelizeValidationError') {
       next(err);
     } else {
       console.error(err);
-
       return res.status(500).json({
-        ok: false,
-        msg: 'Error al actualizar la Organización.'
+        message: 'Error al actualizar la Organización'
       });
     }
   }
@@ -182,40 +260,18 @@ export const update = async (req = request, res = response, next) => {
 
 export const remove = async (req = request, res = response) => {
   const { id } = req.params;
+  const transaction = await sequelize.transaction();
 
   try {
-    await Organization.update({ state: false }, { where: { id } });
-
+    await Organization.destroy({ where: { id }, transaction });
+    await transaction.commit();
     return res.json({
-      ok: true,
-      msg: 'Organización eliminada.'
+      message: 'Organización eliminada'
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al eliminar la Organización.'
-    });
-  }
-};
-
-export const erase = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    await Organization.destroy({ where: { id } });
-
-    return res.json({
-      ok: true,
-      msg: 'Organización borrada.'
-    });
-  } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al eliminar la Organización.'
+      message: 'Error al eliminar la Organización'
     });
   }
 };
@@ -224,38 +280,20 @@ export const getWorkers = async (req = request, res = response) => {
   const { id } = req.params;
 
   try {
-    const result = await sequelize.query(
-      `
-      			SELECT fn_organization_getworkers(:id, 'dbworkers');
-            FETCH ALL IN dbworkers;
-      			`,
-      {
-        replacements: { id: id },
-        type: QueryTypes.SELECT
-      }
-    );
-
-    const dbWorkers = result.slice(1);
-    // const [, ...dbWorkers] = result;
-
-    return res.json({
-      ok: true,
-      arg: dbWorkers
+    const dbOrganization = await Organization.findByPk(parseInt(id, 10), {
+      include: { model: User, as: 'members' }
     });
-
-    // const dbOrganization = await Organization.findByPk(id);
-    // const dbWorkers = await dbOrganization.getUsers();
-
-    // return res.json({
-    //   ok: true,
-    //   arg: dbWorkers
-    // });
-  } catch (error) {
-    console.error(error);
-
+    const members = dbOrganization.members.map((m) => ({
+      id: m.id,
+      name: m.name
+    }));
+    return res.json({
+      data: members
+    });
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({
-      ok: false,
-      msg: 'Error al obtener los Trabajadores.'
+      message: 'Error al obtener los Trabajadores'
     });
   }
 };
@@ -270,14 +308,14 @@ export const addWorkers = async (req = request, res = response) => {
 
     return res.json({
       ok: true,
-      msg: 'Trabajadores agregados.'
+      message: 'Trabajadores agregados.'
     });
   } catch (error) {
     console.log(error);
 
     return res.status(500).json({
       ok: false,
-      msg: 'Error al agregar los Trabajadores.'
+      message: 'Error al agregar los Trabajadores.'
     });
   }
 };
@@ -308,58 +346,14 @@ export const updateWorkers = async (req = request, res = response) => {
 
     return res.json({
       ok: true,
-      msg: 'Lista de Trabajadores actualizada.'
+      message: 'Lista de Trabajadores actualizada.'
     });
   } catch (error) {
     console.log(error);
 
     return res.status(500).json({
       ok: false,
-      msg: 'Error al actualizar la lista de Trabajadores.'
+      message: 'Error al actualizar la lista de Trabajadores.'
     });
   }
 };
-
-export const getToMs = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const result = await sequelize.query(
-      `
-      SELECT * FROM fn_organization_gettoms(:id,'dbtoms');
-      FETCH ALL IN dbtoms;
-      `,
-      {
-        replacements: { id: id },
-        type: QueryTypes.SELECT
-      }
-    );
-
-    const dbToMs = result.slice(1);
-
-    return res.json({
-      ok: true,
-      arg: dbToMs
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al obtener los Tipos de Reunión.'
-    });
-  }
-};
-
-// export const removeAll = async (req, res) => {
-//   try {
-//     await Area.truncate();
-
-//     return res.json({
-//       ok: true,
-//       msg: 'Áreas eliminadas.'
-//     });
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
