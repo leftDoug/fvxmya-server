@@ -1,23 +1,25 @@
 import { Router } from 'express';
 
 import {
-  getAll,
-  getAgreements,
-  getById,
   create,
-  update,
+  getAgreements,
+  getAll,
+  getAllFrom,
+  getById,
   getInfo,
+  getOrganization,
   // getParticipants,
   // getOrganization,
   setAttendance,
-  setOpen,
   setClose,
-  getOrganization
+  setOpen,
+  update
 } from '../controllers/meeting.controller.js';
 
 const router = Router();
 
 router.get('/', getAll);
+router.get('/type-of-meeting/:id', getAllFrom);
 router.post('/', create);
 router.get('/agreements/:id', getAgreements);
 // router.get('/:id/participants', getParticipants);

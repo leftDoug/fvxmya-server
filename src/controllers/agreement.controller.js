@@ -1,14 +1,13 @@
 import { request, response } from 'express';
 
-import { Agreement } from '../models/Agreement.js';
-import { sequelize } from '../db/config.js';
 import { QueryTypes } from 'sequelize';
+import { sequelize } from '../db/config.js';
+import { getIdUser } from '../helpers/jwt.js';
 import { getDateFromDb, setDateToDb } from '../helpers/utils.js';
-import { User } from '../models/User.js';
+import { Agreement } from '../models/Agreement.js';
 import { Meeting } from '../models/Meeting.js';
 import { Response } from '../models/Response.js';
-import { getIdUser } from '../helpers/jwt.js';
-import picocolors from 'picocolors';
+import { User } from '../models/User.js';
 
 // const getStringDate = (date) => {
 //   const tempDate = new Date(date);
@@ -269,6 +268,47 @@ export const getAllFromUser = async (req = request, res = response) => {
     res.status(500).json({
       ok: false,
       msg: 'Error al obtener los Acuerdos.'
+    });
+  }
+};
+
+export const getAllFromMeeting = async (req = request, res = response) => {
+  const { id } = req.params;
+
+  try {
+    const dbAgreements = await Agreement.findAll({
+      where: { idMeeting: id },
+      include: [{ model: User, as: 'responsible' }, Meeting, Response]
+    });
+    const agreements = dbAgreements.map((a) => {
+      return {
+        id: a.id,
+        number: a.number,
+        content: a.content,
+        compilanceDate: a.compilanceDate,
+        completed: a.completed,
+        state: a.state,
+        responsible: {
+          id: a.responsible.id,
+          name: a.responsible.name
+        },
+        meeting: {
+          id: a.meeting.id,
+          name: a.meeting.name
+        },
+        responses: a.responses.map((r) => ({
+          id: r.id,
+          content: r.content
+        }))
+      };
+    });
+    return res.json({
+      data: agreements
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: 'Error al obtener los Acuerdos'
     });
   }
 };

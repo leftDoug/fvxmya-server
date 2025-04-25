@@ -11,7 +11,7 @@ import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
 export const getAll = async (req = request, res = response) => {
   try {
     const dbOrganizations = await Organization.findAll({
-      include: User
+      include: { model: User, as: 'leader' }
     });
 
     const organizations = dbOrganizations.map((organization) => ({
@@ -19,7 +19,7 @@ export const getAll = async (req = request, res = response) => {
       name: organization.name,
       leader: {
         id: organization.idLeader,
-        name: organization.user.name
+        name: organization.leader.name
       }
     }));
     return res.json({
@@ -96,14 +96,17 @@ export const getInfo = async (req = request, res = response) => {
 
   try {
     const dbOrganization = await Organization.findByPk(id, {
-      include: [{ model: User }, { model: User, as: 'members' }]
+      include: [
+        { model: User, as: 'leader' },
+        { model: User, as: 'members' }
+      ]
     });
     const organization = {
       id: dbOrganization.id,
       name: dbOrganization.name,
       leader: {
-        id: dbOrganization.user.id,
-        name: dbOrganization.user.name
+        id: dbOrganization.idLeader,
+        name: dbOrganization.leader.name
       },
       members: dbOrganization.members.map((m) => ({
         id: m.id,
@@ -157,7 +160,10 @@ export const create = async (req = request, res = response, next) => {
     const organization = {
       id: dbOrgInfo.id,
       name: dbOrgInfo.name,
-      leader: dbOrgInfo.user.name
+      leader: {
+        id: dbOrgInfo.user.id,
+        name: dbOrgInfo.user.name
+      }
     };
     await transaction.commit();
     return res.status(201).json({
@@ -177,7 +183,6 @@ export const create = async (req = request, res = response, next) => {
   }
 };
 
-// FIXME arreglar, xk deben venir los miembros tb
 export const update = async (req = request, res = response, next) => {
   const { id } = req.params;
   const { name, idLeader, members } = req.body;

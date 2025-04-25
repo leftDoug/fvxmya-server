@@ -13,7 +13,8 @@ export default function setupAssociations(models) {
     TypeOfMeeting,
     User,
     MeetingWorker,
-    OrganizationMember
+    OrganizationMember,
+    MeetingTopic
   } = models;
 
   // ===> agenda
@@ -25,6 +26,7 @@ export default function setupAssociations(models) {
   });
 
   Agenda.belongsTo(TypeOfMeeting, {
+    as: 'typeOfMeeting',
     foreignKey: {
       name: 'idTypeOfMeeting',
       allowNull: false
@@ -40,6 +42,7 @@ export default function setupAssociations(models) {
   });
 
   Agreement.belongsTo(User, {
+    as: 'responsible',
     foreignKey: {
       name: 'idResponsible',
       allowNull: false
@@ -62,6 +65,7 @@ export default function setupAssociations(models) {
 
   // ===> meeting <===
   TypeOfMeeting.hasMany(Meeting, {
+    as: 'meets',
     foreignKey: {
       name: 'idTypeOfMeeting',
       allowNull: false
@@ -69,6 +73,7 @@ export default function setupAssociations(models) {
   });
 
   Meeting.belongsTo(TypeOfMeeting, {
+    as: 'typeOfMeeting',
     foreignKey: {
       name: 'idTypeOfMeeting',
       allowNull: false
@@ -86,17 +91,31 @@ export default function setupAssociations(models) {
 
   // ===> meeting-guest <===
   Meeting.belongsToMany(User, {
+    as: 'participants',
     through: MeetingWorker,
     foreignKey: { name: 'idMeeting' }
   });
 
   User.belongsToMany(Meeting, {
+    as: 'meets',
     through: MeetingWorker,
     foreignKey: { name: 'idWorker' }
   });
 
+  // ===> meeting-topic <===
+  Meeting.belongsToMany(Topic, {
+    through: MeetingTopic,
+    foreignKey: { name: 'idMeeting' }
+  });
+
+  Topic.belongsToMany(Meeting, {
+    through: MeetingTopic,
+    foreignKey: { name: 'idTopic' }
+  });
+
   // ===> organization <===
   Organization.belongsTo(User, {
+    as: 'leader',
     foreignKey: {
       name: 'idLeader',
       allowNull: false

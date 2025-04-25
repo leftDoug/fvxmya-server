@@ -58,7 +58,7 @@ export const getInfo = async (req = request, res = response) => {
   const { id } = req.params;
 
   try {
-    const dbTom = await TypeOfMeeting.findByPk(parseInt(id, 10), {
+    const dbTom = await TypeOfMeeting.findByPk(parseInt(id), {
       include: Organization
     });
 
@@ -71,12 +71,13 @@ export const getInfo = async (req = request, res = response) => {
     const tom = {
       id: dbTom.id,
       name: dbTom.name,
-      idOrganization: dbTom.idOrganization,
-      organization: dbTom.organization.name
+      organization: {
+        id: dbTom.organization.id,
+        name: dbTom.organization.name
+      }
     };
-
     return res.json({
-      data: tom
+      data: dbTom
     });
   } catch (err) {
     console.error(err);

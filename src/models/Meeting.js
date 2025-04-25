@@ -2,12 +2,6 @@ import { DataTypes } from 'sequelize';
 
 import { sequelize } from '../db/config.js';
 
-import { Agreement } from './Agreement.js';
-import { MeetingAbsence } from './MeetingAbsence.js';
-import { MeetingGuest } from './MeetingGuest.js';
-import { TypeOfMeeting } from './TypeOfMeeting.js';
-import { User } from './User.js';
-
 export const Meeting = sequelize.define(
   'meeting',
   {
@@ -34,8 +28,8 @@ export const Meeting = sequelize.define(
       type: DataTypes.TIME
     },
     status: {
-      type: DataTypes.ENUM('pendiente', 'en proceso', 'completada'),
-      defaultValue: 'pendiente',
+      type: DataTypes.ENUM('PENDIENTE', 'EN PROCESO', 'COMPLETADA'),
+      defaultValue: 'PENDIENTE',
       allowNull: false
     }
   },

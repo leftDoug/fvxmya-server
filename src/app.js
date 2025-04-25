@@ -1,21 +1,21 @@
-import express, { request, response } from 'express';
 import cors from 'cors';
+import express from 'express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
-import barFooRoutes from './routes/bar-foo.routes.js';
 import areasRoutes from './routes/areas.routes.js';
-import organizationsRoutes from './routes/organizations.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import barFooRoutes from './routes/bar-foo.routes.js';
+import organizationsRoutes from './routes/organizations.routes.js';
 // import workersRoutes from './routes/workers.routes.js';
-import typesOfMeetingsRoutes from './routes/types-of-meetings.routes.js';
-import rolesRoutes from './routes/roles.routes.js';
+import { validateFields } from './middlewares/validate-fields.js';
 import agendasRoutes from './routes/agendas.routes.js';
+import agreementsRoutes from './routes/agreements.routes.js';
 import meetingsRoutes from './routes/meetings.routes.js';
 import responsesRoutes from './routes/responses.routes.js';
-import agreementsRoutes from './routes/agreements.routes.js';
+import rolesRoutes from './routes/roles.routes.js';
 import topicsRoutes from './routes/topics.routes.js';
-import { validateFields } from './middlewares/validate-fields.js';
+import typesOfMeetingsRoutes from './routes/types-of-meetings.routes.js';
 
 // create express application/server
 const app = express();
@@ -69,7 +69,8 @@ app.use('/api/responses', responsesRoutes);
 app.use('/api/agreements', agreementsRoutes);
 app.use('/api/topics', topicsRoutes);
 app.use((req, res) => {
-  res.status(404).json({
+  return res.status(404).json({
+    ok: false,
     message: 'Ruta no encontrada'
   });
 });

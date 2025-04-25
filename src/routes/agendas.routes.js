@@ -8,15 +8,17 @@ import {
   getTopics,
   erase,
   remove,
-  getInfo
+  getInfo,
+  getTopicsFrom
 } from '../controllers/agenda.controller.js';
 
 const router = Router();
 
 router.get('/', getAll);
 router.get('/:id', getById);
-router.get('/:id/info', getInfo);
+router.get('/info/:id', getInfo);
 router.get('/:id/topics', getTopics);
+router.get('/topics/:id', getTopicsFrom);
 router.post('/', create);
 router.patch('/:id', update);
 router.patch('/:id/remove', remove);

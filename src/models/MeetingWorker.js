@@ -27,8 +27,8 @@ export const MeetingWorker = sequelize.define(
       allowNull: false
     },
     status: {
-      type: DataTypes.ENUM('pendiente', 'presente', 'ausente'),
-      defaultValue: 'pendiente',
+      type: DataTypes.ENUM('PENDIENTE', 'PRESENTE', 'AUSENTE'),
+      defaultValue: 'PENDIENTE',
       allowNull: true
     }
   },

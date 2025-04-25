@@ -29,9 +29,11 @@ export function setTimeToDb(time) {
   return timeToDb;
 }
 
-export function getTimeFromDb(date, dbTime) {
+export function getTimeFromDb(dbDate, dbTime) {
   const [hours, minutes] = dbTime.split(':');
-  const tempDate = new Date(date);
+  const [year, month, day] = dbDate.split('-');
+  const tempDate = new Date(`${month}/${day}/${year}`);
+  // const tempDate = new Date(date);
 
   tempDate.setHours(parseInt(hours));
   tempDate.setMinutes(parseInt(minutes));

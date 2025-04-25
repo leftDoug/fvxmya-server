@@ -4,34 +4,24 @@ import pc from 'picocolors';
 import app from './app.js';
 
 import { sequelize } from './db/config.js';
-import { createViews } from './db/views.js';
-import { createFunctions } from './db/functions.js';
 
-import { Agenda, getAgendaModel } from './models/Agenda.js';
-import { Agreement, getAgreementModel } from './models/Agreement.js';
-import { Area, getAreaModel } from './models/Area.js';
-import { getMeetingModel, Meeting } from './models/Meeting.js';
-import {
-  getMeetingWorkerModel,
-  MeetingWorker
-} from './models/MeetingWorker.js';
-import { getOrganizationModel, Organization } from './models/Organization.js';
-import {
-  getOrganizationMemberModel,
-  OrganizationMember
-} from './models/OrganizationMember.js';
-import { getResponseModel, Response } from './models/Response.js';
-import { getRoleModel, Role } from './models/Role.js';
-import { getTopicModel, Topic } from './models/Topic.js';
-import {
-  getTypeOfMeetingModel,
-  TypeOfMeeting
-} from './models/TypeOfMeeting.js';
-import { getUserModel, User } from './models/User.js';
+import { getAgendaModel } from './models/Agenda.js';
+import { getAgreementModel } from './models/Agreement.js';
+import { getAreaModel } from './models/Area.js';
+import { getMeetingModel } from './models/Meeting.js';
+import { getMeetingWorkerModel } from './models/MeetingWorker.js';
+import { getOrganizationModel } from './models/Organization.js';
+import { getOrganizationMemberModel } from './models/OrganizationMember.js';
+import { getResponseModel } from './models/Response.js';
+import { getRoleModel } from './models/Role.js';
+import { getTopicModel } from './models/Topic.js';
+import { getTypeOfMeetingModel } from './models/TypeOfMeeting.js';
+import { getUserModel } from './models/User.js';
 
 import setupAssociations from './models/associations.js';
-import { Bar, getBarModel } from './models/Bar.js';
-import { Foo, getFooModel } from './models/Foo.js';
+import { getBarModel } from './models/Bar.js';
+import { getFooModel } from './models/Foo.js';
+import { getMeetingTopicModel } from './models/MeetingTopic.js';
 
 dotenv.config();
 
@@ -49,13 +39,15 @@ const models = {
   TypeOfMeeting: getTypeOfMeetingModel(),
   User: getUserModel(),
   MeetingWorker: getMeetingWorkerModel(),
-  OrganizationMember: getOrganizationMemberModel()
+  OrganizationMember: getOrganizationMemberModel(),
+  MeetingTopic: getMeetingTopicModel()
 };
 setupAssociations(models);
 
 async function dbConnection() {
   try {
     await sequelize.authenticate();
+    // await MeetingWorker.sync({ alter: true });
     // await sequelize.sync();
     // await Bar.sync({ force: true });
     // await Foo.sync({ force: true });
