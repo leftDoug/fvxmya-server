@@ -21,36 +21,66 @@ import { User } from '../models/User.js';
 export const create = async (req = request, res = response) => {
   const { content, compilanceDate, idMeeting, idResponsible } = req.body;
   const date = setDateToDb(compilanceDate);
+  const transaction = await sequelize.transaction();
 
   try {
-    const dbAgreement = await Agreement.findOne({
-      where: { content, idMeeting }
+    let dbAgreement = await Agreement.findOne({
+      where: { content, idMeeting },
+      transaction
     });
 
     if (dbAgreement) {
       return res.status(400).json({
         ok: false,
-        msg: 'Este acuerdo ya existe en esta reunion.'
+        message: 'Este acuerdo ya existe en esta reunion.'
       });
     }
 
-    await Agreement.create({
-      content,
-      compilanceDate: date,
-      idMeeting,
-      idResponsible
+    dbAgreement = await Agreement.create(
+      {
+        content,
+        compilanceDate: date,
+        idMeeting,
+        idResponsible
+      },
+      { transaction }
+    );
+    dbAgreement = await Agreement.findByPk(dbAgreement.id, {
+      include: [{ model: User, as: 'responsible' }, { model: Meeting }],
+      transaction
     });
+    const agreement = {
+      id: dbAgreement.id,
+      number: dbAgreement.number,
+      content: dbAgreement.content,
+      compilanceDate: getDateFromDb(dbAgreement.compilanceDate),
+      state: dbAgreement.state,
+      completed: dbAgreement.completed,
+      responsible: {
+        id: dbAgreement.responsible.id,
+        name: dbAgreement.responsible.name
+      },
+      meeting: {
+        id: dbAgreement.meeting.id,
+        name: dbAgreement.meeting.name
+      },
+      responses: []
+    };
+
+    await transaction.commit();
 
     return res.status(201).json({
       ok: true,
-      msg: 'Acuerdo creado'
+      message: 'Acuerdo creado',
+      data: agreement
     });
   } catch (err) {
     console.error(err);
+    await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
-      msg: 'Error al crear el Acuerdo'
+      message: 'Error al crear el Acuerdo'
     });
   }
 };
@@ -59,20 +89,57 @@ export const update = async (req = request, res = response) => {
   const { id } = req.params;
   const { compilanceDate } = req.body;
   const date = setDateToDb(compilanceDate);
+  const transaction = await sequelize.transaction();
 
   try {
-    await Agreement.update({ compilanceDate: date }, { where: { id } });
+    await Agreement.update(
+      { compilanceDate: date },
+      { where: { id }, transaction }
+    );
+
+    const dbAgreement = await Agreement.findByPk(id, {
+      include: [
+        { model: User, as: 'responsible' },
+        { model: Meeting },
+        { model: Response }
+      ],
+      transaction
+    });
+    const agreement = {
+      id: dbAgreement.id,
+      number: dbAgreement.number,
+      content: dbAgreement.content,
+      compilanceDate: getDateFromDb(dbAgreement.compilanceDate),
+      state: dbAgreement.state,
+      completed: dbAgreement.completed,
+      responsible: {
+        id: dbAgreement.responsible.id,
+        name: dbAgreement.responsible.name
+      },
+      meeting: {
+        id: dbAgreement.meeting.id,
+        name: dbAgreement.meeting.name
+      },
+      responses: dbAgreement.responses.map((r) => ({
+        id: r.id,
+        content: r.content
+      }))
+    };
+
+    await transaction.commit();
 
     return res.json({
       ok: true,
-      msg: 'Acuerdo actualizado'
+      message: 'Acuerdo actualizado',
+      data: agreement
     });
   } catch (err) {
     console.error(err);
+    await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
-      msg: 'Error al actualizar el Acuerdo'
+      message: 'Error al actualizar el Acuerdo'
     });
   }
 };
@@ -211,20 +278,48 @@ export const getResponses = async (req = request, res = response) => {
 
 export const setCompleted = async (req = request, res = response) => {
   const { id } = req.params;
+  const transaction = await sequelize.transaction();
 
   try {
-    await Agreement.update({ completed: true }, { where: { id } });
+    await Agreement.update({ completed: true }, { where: { id }, transaction });
+
+    await transaction.commit();
 
     return res.json({
       ok: true,
-      msg: 'Acuerdo completado'
+      message: 'Acuerdo completado'
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
+    await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
-      msg: 'Error al completar el acuerdo'
+      message: 'Error al completar el Acuerdo'
+    });
+  }
+};
+
+export const setCancelled = async (req = request, res = response) => {
+  const { id } = req.params;
+  const transaction = await sequelize.transaction();
+
+  try {
+    await Agreement.update({ state: false }, { where: { id }, transaction });
+
+    await transaction.commit();
+
+    return res.json({
+      ok: true,
+      message: 'Acuerdo anulado'
+    });
+  } catch (err) {
+    console.log(err);
+    await transaction.rollback();
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al anular el Acuerdo'
     });
   }
 };
@@ -285,7 +380,7 @@ export const getAllFromMeeting = async (req = request, res = response) => {
         id: a.id,
         number: a.number,
         content: a.content,
-        compilanceDate: a.compilanceDate,
+        compilanceDate: getDateFromDb(a.compilanceDate),
         completed: a.completed,
         state: a.state,
         responsible: {

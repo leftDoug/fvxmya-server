@@ -7,6 +7,7 @@ import {
   getById,
   getInfo,
   getResponses,
+  setCancelled,
   setCompleted,
   update
 } from '../controllers/agreement.controller.js';
@@ -21,5 +22,6 @@ router.get('/responses/:id', getResponses);
 router.post('/', create);
 router.patch('/:id', update);
 router.patch('/complete/:id', setCompleted);
+router.patch('/cancel/:id', setCancelled);
 
 export default router;

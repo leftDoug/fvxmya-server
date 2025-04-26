@@ -844,7 +844,7 @@ export const getInfo = async (req = request, res = response) => {
       name: dbMeeting.name,
       status: dbMeeting.status,
       session: dbMeeting.session,
-      date: dbMeeting.date,
+      date: getDateFromDb(dbMeeting.date),
       startTime: getTimeFromDb(dbMeeting.date, dbMeeting.startTime),
       endTime: getTimeFromDb(dbMeeting.date, dbMeeting.endTime),
       secretary: {
