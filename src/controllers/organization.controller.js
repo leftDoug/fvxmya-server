@@ -1,12 +1,9 @@
 import { request, response } from 'express';
 
-import { Organization } from '../models/Organization.js';
 import { sequelize } from '../db/config.js';
-import { QueryTypes, where } from 'sequelize';
+import { Organization } from '../models/Organization.js';
 import { OrganizationMember } from '../models/OrganizationMember.js';
-import picocolors from 'picocolors';
 import { User } from '../models/User.js';
-import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
 
 export const getAll = async (req = request, res = response) => {
   try {
@@ -18,16 +15,19 @@ export const getAll = async (req = request, res = response) => {
       id: organization.id,
       name: organization.name,
       leader: {
-        id: organization.idLeader,
-        name: organization.leader.name
+        id: organization.leader.id,
+        name: organization.leader.name,
+        occupation: organization.leader.occupation
       }
     }));
     return res.json({
+      ok: true,
       data: organizations
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
+      ok: false,
       message: 'Error al listar las Organizaciones'
     });
   }
@@ -55,14 +55,15 @@ export const getAllFrom = async (req = request, res = response) => {
   try {
     let dbOrgsAsLeader = await Organization.findAll({
       where: { idLeader: id },
-      include: User
+      include: { model: User, as: 'leader' }
     });
     dbOrgsAsLeader = dbOrgsAsLeader.map((organization) => ({
       id: organization.id,
       name: organization.name,
       leader: {
-        id: organization.idLeader,
-        name: organization.user.name
+        id: organization.leader.id,
+        name: organization.leader.name,
+        occupation: organization.leader.occupation
       }
     }));
     const dbOrgsAsMember = await User.findByPk(id, {
@@ -81,11 +82,13 @@ export const getAllFrom = async (req = request, res = response) => {
         }))
     ];
     return res.json({
+      ok: true,
       data: organizations
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
+      ok: false,
       message: 'Error al buscar las Organizaciones'
     });
   }
@@ -105,20 +108,24 @@ export const getInfo = async (req = request, res = response) => {
       id: dbOrganization.id,
       name: dbOrganization.name,
       leader: {
-        id: dbOrganization.idLeader,
-        name: dbOrganization.leader.name
+        id: dbOrganization.leader.id,
+        name: dbOrganization.leader.name,
+        occupation: dbOrganization.leader.occupation
       },
       members: dbOrganization.members.map((m) => ({
         id: m.id,
-        name: m.name
+        name: m.name,
+        occupation: m.occupation
       }))
     };
     return res.json({
+      ok: true,
       data: organization
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
+      ok: false,
       message: 'Error al obtener la información de la Organización'
     });
   }
@@ -154,19 +161,24 @@ export const create = async (req = request, res = response, next) => {
       { transaction }
     );
     const dbOrgInfo = await Organization.findByPk(parseInt(dbOrganization.id), {
-      include: [{ model: User }, { model: User, as: 'members' }],
+      include: [
+        { model: User, as: 'leader' },
+        { model: User, as: 'members' }
+      ],
       transaction
     });
     const organization = {
       id: dbOrgInfo.id,
       name: dbOrgInfo.name,
       leader: {
-        id: dbOrgInfo.user.id,
-        name: dbOrgInfo.user.name
+        id: dbOrgInfo.leader.id,
+        name: dbOrgInfo.leader.name,
+        occupation: dbOrgInfo.leader.occupation
       }
     };
     await transaction.commit();
     return res.status(201).json({
+      ok: true,
       message: 'Organización creada',
       data: organization
     });
@@ -177,6 +189,7 @@ export const create = async (req = request, res = response, next) => {
     } else {
       console.error(err);
       return res.status(500).json({
+        ok: false,
         message: 'Error al crear la Organización'
       });
     }
@@ -230,23 +243,29 @@ export const update = async (req = request, res = response, next) => {
       { transaction }
     );
     const dbOrgInfo = await Organization.findByPk(parseInt(id), {
-      include: [{ model: User }, { model: User, as: 'members' }],
+      include: [
+        { model: User, as: 'leader' },
+        { model: User, as: 'members' }
+      ],
       transaction
     });
     const organization = {
       id: dbOrgInfo.id,
       name: dbOrgInfo.name,
       leader: {
-        id: dbOrgInfo.user.id,
-        name: dbOrgInfo.user.name
+        id: dbOrgInfo.leader.id,
+        name: dbOrgInfo.leader.name,
+        occupation: dbOrgInfo.leader.occupation
       },
       members: dbOrgInfo.members.map((m) => ({
         id: m.id,
-        name: m.name
+        name: m.name,
+        occupation: m.occupation
       }))
     };
     await transaction.commit();
     return res.json({
+      ok: true,
       message: 'Organización actualizada',
       data: organization
     });
@@ -257,6 +276,7 @@ export const update = async (req = request, res = response, next) => {
     } else {
       console.error(err);
       return res.status(500).json({
+        ok: false,
         message: 'Error al actualizar la Organización'
       });
     }
@@ -290,14 +310,17 @@ export const getWorkers = async (req = request, res = response) => {
     });
     const members = dbOrganization.members.map((m) => ({
       id: m.id,
-      name: m.name
+      name: m.name,
+      occupation: m.occupation
     }));
     return res.json({
+      ok: true,
       data: members
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
+      ok: false,
       message: 'Error al obtener los Trabajadores'
     });
   }

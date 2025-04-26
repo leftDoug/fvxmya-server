@@ -694,11 +694,13 @@ export const getAll = async (req = request, res = response) => {
       },
       secretary: {
         id: m.secretary.id,
-        name: m.secretary.name
+        name: m.secretary.name,
+        occupation: m.secretary.occupation
       },
       participants: m.participants.map((p) => ({
         id: p.id,
         name: p.name,
+        occupation: p.occupation,
         member: p.meetingsWorkers.member,
         status: p.meetingsWorkers.status
       })),
@@ -747,11 +749,13 @@ export const getAllFrom = async (req = request, res = response) => {
       },
       secretary: {
         id: m.secretary.id,
-        name: m.secretary.name
+        name: m.secretary.name,
+        occupation: m.secretary.occupation
       },
       participants: m.participants.map((p) => ({
         id: p.id,
         name: p.name,
+        occupation: p.occupation,
         member: p.meetingsWorkers.member,
         status: p.meetingsWorkers.status
       })),
@@ -835,6 +839,7 @@ export const getInfo = async (req = request, res = response) => {
       return {
         id: worker.id,
         name: worker.name,
+        occupation: worker.occupation,
         member: worker.meetingsWorkers.member,
         status: worker.meetingsWorkers.status
       };
@@ -849,7 +854,8 @@ export const getInfo = async (req = request, res = response) => {
       endTime: getTimeFromDb(dbMeeting.date, dbMeeting.endTime),
       secretary: {
         id: dbMeeting.idSecretary,
-        name: dbMeeting.secretary.name
+        name: dbMeeting.secretary.name,
+        occupation: dbMeeting.secretary.occupation
       },
       typeOfMeeting: {
         id: dbMeeting.idTypeOfMeeting,
@@ -1145,6 +1151,7 @@ export const create = async (req = request, res = response) => {
       return {
         id: p.id,
         name: p.name,
+        occupation: p.occupation,
         member: p.meetingsWorkers.member,
         status: p.meetingsWorkers.status
       };
@@ -1159,7 +1166,8 @@ export const create = async (req = request, res = response) => {
       endTime: getTimeFromDb(dbMeeting.date, dbMeeting.endTime),
       secretary: {
         id: dbMeeting.secretary.id,
-        name: dbMeeting.secretary.name
+        name: dbMeeting.secretary.name,
+        occupation: dbMeeting.secretary.occupation
       },
       typeOfMeeting: {
         id: dbMeeting.typeOfMeeting.id,
@@ -1459,6 +1467,7 @@ export const update = async (req = request, res = response) => {
       return {
         id: p.id,
         name: p.name,
+        occupation: p.occupation,
         member: p.meetingsWorkers.member,
         status: p.meetingsWorkers.status
       };
@@ -1473,7 +1482,8 @@ export const update = async (req = request, res = response) => {
       endTime: getTimeFromDb(dbMeeting.date, dbMeeting.endTime),
       secretary: {
         id: dbMeeting.secretary.id,
-        name: dbMeeting.secretary.name
+        name: dbMeeting.secretary.name,
+        occupation: dbMeeting.secretary.occupation
       },
       typeOfMeeting: {
         id: dbMeeting.typeOfMeeting.id,
