@@ -2,48 +2,38 @@ import { DataTypes, Sequelize } from 'sequelize';
 
 import { sequelize } from '../db/config.js';
 
-import { Response } from './Response.js';
-import { User } from './User.js';
-
-export const Agreement = sequelize.define(
-  'agreement',
-  {
-    id: {
-      type: DataTypes.STRING,
-      primaryKey: true,
-      unique: true,
-      defaultValue: Sequelize.literal(
-        "to_char(current_timestamp, 'YYYYMMDDHH24MISSMS')"
-      )
-    },
-    number: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      allowNull: false
-    },
-    content: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-    compilanceDate: {
-      type: DataTypes.DATEONLY,
-      allowNull: false
-    },
-    completed: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false
-    },
-    state: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false
-    }
+export const Agreement = sequelize.define('agreement', {
+  id: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+    unique: true,
+    defaultValue: Sequelize.literal(
+      "to_char(current_timestamp, 'YYYYMMDDHH24MISSMS')"
+    )
   },
-  {
-    timestamps: false
+  number: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  content: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  compilanceDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: false
+  },
+  completed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  state: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    allowNull: false
   }
-);
+});
 
 export const getAgreementModel = () => {
   return Agreement;

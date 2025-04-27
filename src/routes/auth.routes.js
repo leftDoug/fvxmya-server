@@ -3,25 +3,26 @@ import { Router } from 'express';
 import { validateJWT } from '../middlewares/validate-jwt.js';
 
 import {
-  getWorkers,
+  changePassword,
   getById,
   getInfo,
+  getOrganizationsFromUser,
+  getUsers,
+  getWorkers,
+  isAdmin,
   login,
   register,
-  tokenRenewal,
-  update,
-  getUsers,
   setLock,
   setUnlock,
-  isAdmin,
-  getOrganizationsFromUser
+  tokenRenewal,
+  update
 } from '../controllers/auth.controller.js';
 import { findByPk } from '../middlewares/findByPk.js';
 
 const router = Router();
 
 // register user
-router.post('/register', findByPk, register);
+router.post('/register', register);
 
 // login
 router.post('/login', login);
@@ -42,5 +43,6 @@ router.get('/workers', getWorkers);
 router.patch('/users/:id', update);
 router.patch('/users/lock/:id', setLock);
 router.patch('/users/unlock/:id', setUnlock);
+router.patch('/change-password/:id', changePassword);
 
 export default router;

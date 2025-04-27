@@ -4,17 +4,15 @@ export default function setupAssociations(models) {
     Foo,
     Agenda,
     Agreement,
-    Area,
     Meeting,
     Organization,
     Response,
-    Role,
     Topic,
     TypeOfMeeting,
     User,
-    MeetingWorker,
-    OrganizationMember,
-    MeetingTopic
+    MeetingAttendance,
+    OrganizationMembership,
+    MeetingAgenda
   } = models;
 
   // ===> agenda
@@ -92,24 +90,24 @@ export default function setupAssociations(models) {
   // ===> meeting-guest <===
   Meeting.belongsToMany(User, {
     as: 'participants',
-    through: MeetingWorker,
+    through: MeetingAttendance,
     foreignKey: { name: 'idMeeting' }
   });
 
   User.belongsToMany(Meeting, {
     as: 'meets',
-    through: MeetingWorker,
+    through: MeetingAttendance,
     foreignKey: { name: 'idWorker' }
   });
 
   // ===> meeting-topic <===
   Meeting.belongsToMany(Topic, {
-    through: MeetingTopic,
+    through: MeetingAgenda,
     foreignKey: { name: 'idMeeting' }
   });
 
   Topic.belongsToMany(Meeting, {
-    through: MeetingTopic,
+    through: MeetingAgenda,
     foreignKey: { name: 'idTopic' }
   });
 
@@ -132,7 +130,7 @@ export default function setupAssociations(models) {
   // ===> organization-member <===
   Organization.belongsToMany(User, {
     as: 'members',
-    through: OrganizationMember,
+    through: OrganizationMembership,
     foreignKey: {
       name: 'idOrganization'
     }
@@ -140,7 +138,7 @@ export default function setupAssociations(models) {
 
   User.belongsToMany(Organization, {
     as: 'orgs',
-    through: OrganizationMember,
+    through: OrganizationMembership,
     foreignKey: {
       name: 'idMember'
     }
@@ -178,6 +176,7 @@ export default function setupAssociations(models) {
 
   // ===> type-of-meeting <===
   Organization.hasMany(TypeOfMeeting, {
+    as: 'typesOfMeetings',
     foreignKey: {
       name: 'idOrganization',
       allowNull: false
@@ -192,13 +191,13 @@ export default function setupAssociations(models) {
   });
 
   // ===> user <===
-  Area.hasMany(User, { foreignKey: { name: 'idArea', allowNull: false } });
+  // Area.hasMany(User, { foreignKey: { name: 'idArea', allowNull: false } });
 
-  User.belongsTo(Area, { foreignKey: { name: 'idArea', allowNull: false } });
+  // User.belongsTo(Area, { foreignKey: { name: 'idArea', allowNull: false } });
 
-  Role.hasMany(User, { foreignKey: { name: 'idRole', allowNull: false } });
+  // Role.hasMany(User, { foreignKey: { name: 'idRole', allowNull: false } });
 
-  User.belongsTo(Role, { foreignKey: { name: 'idRole', allowNull: false } });
+  // User.belongsTo(Role, { foreignKey: { name: 'idRole', allowNull: false } });
 
   // ===> bar-foo <===
   // Bar.hasMany(Foo, { foreignKey: 'idBar' });

@@ -5,24 +5,21 @@ import { sequelize } from '../db/config.js';
 export const Meeting = sequelize.define(
   'meeting',
   {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
     name: {
       type: DataTypes.STRING,
       allowNull: false
     },
     session: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM('ORDINARIA', 'EXTRAORDINARIA'),
       allowNull: false
     },
     date: {
-      type: DataTypes.DATEONLY
+      type: DataTypes.DATEONLY,
+      allowNull: false
     },
     startTime: {
-      type: DataTypes.TIME
+      type: DataTypes.TIME,
+      allowNull: false
     },
     endTime: {
       type: DataTypes.TIME
@@ -31,10 +28,15 @@ export const Meeting = sequelize.define(
       type: DataTypes.ENUM('PENDIENTE', 'EN PROCESO', 'COMPLETADA'),
       defaultValue: 'PENDIENTE',
       allowNull: false
+    },
+    agreementsAmount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
     }
   },
   {
-    timestamps: false
+    paranoid: false
   }
 );
 

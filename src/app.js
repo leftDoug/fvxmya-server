@@ -3,7 +3,6 @@ import express from 'express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
-import areasRoutes from './routes/areas.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import barFooRoutes from './routes/bar-foo.routes.js';
 import organizationsRoutes from './routes/organizations.routes.js';
@@ -13,7 +12,6 @@ import agendasRoutes from './routes/agendas.routes.js';
 import agreementsRoutes from './routes/agreements.routes.js';
 import meetingsRoutes from './routes/meetings.routes.js';
 import responsesRoutes from './routes/responses.routes.js';
-import rolesRoutes from './routes/roles.routes.js';
 import topicsRoutes from './routes/topics.routes.js';
 import typesOfMeetingsRoutes from './routes/types-of-meetings.routes.js';
 
@@ -58,11 +56,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // routes
 app.use('', barFooRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/areas', areasRoutes);
 app.use('/api/organizations', organizationsRoutes);
 // app.use('/api/workers', workersRoutes);
 app.use('/api/types-of-meetings', typesOfMeetingsRoutes);
-app.use('/api/roles', rolesRoutes);
 app.use('/api/agendas', agendasRoutes);
 app.use('/api/meetings', meetingsRoutes);
 app.use('/api/responses', responsesRoutes);

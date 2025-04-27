@@ -1,12 +1,6 @@
 import { DataTypes } from 'sequelize';
 
-import { nameRegExp } from '../helpers/utils.js';
 import { sequelize } from '../db/config.js';
-
-import { Area } from './Area.js';
-import { Organization } from './Organization.js';
-import { OrganizationMember } from './OrganizationMember.js';
-import { Role } from './Role.js';
 
 export const User = sequelize.define(
   'user',
@@ -33,14 +27,23 @@ export const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false
     },
-    email: {
+    area: {
       type: DataTypes.STRING,
-      unique: true,
+      allowNull: false
+    },
+    role: {
+      type: DataTypes.ENUM('ADMINISTRADOR', 'LÍDER', 'TRABAJADOR'),
+      defaultValue: 'TRABAJADOR',
+      allowNull: false
+    },
+    state: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
       allowNull: false
     }
   },
   {
-    timestamps: false
+    paranoid: true
   }
 );
 

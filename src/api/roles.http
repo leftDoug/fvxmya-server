@@ -1,5 +1,0 @@
-### getAll
-GET http://localhost:4000/api/roles HTTP/1.1
-
-### getById
-GET http://localhost:4000/api/roles/1 HTTP/1.1
