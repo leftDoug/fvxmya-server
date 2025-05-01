@@ -1,56 +1,74 @@
 import bcrypt from 'bcryptjs';
 import { request, response } from 'express';
-import { QueryTypes } from 'sequelize';
 
 import { sequelize } from '../db/config.js';
-import { generateJWT, getIdUser } from '../helpers/jwt.js';
+import {
+  generateJWT,
+  generateTokens,
+  revokeToken,
+  verifyToken
+} from '../helpers/jwt.js';
 
-import { Organization } from '../models/Organization.js';
+import picocolors from 'picocolors';
+import { Token } from '../models/Token.js';
 import { User } from '../models/User.js';
 
-// FIXME arreglar los mensajes de error para usuario o contrasena incorrecta
 export const login = async (req = request, res = response) => {
   const { username, password } = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    const dbUser = await User.findOne({ where: { username } });
+    const dbUser = await User.findOne({ where: { username }, transaction });
 
     if (!dbUser) {
-      return res.status(400).json({
+      await transaction.commit();
+
+      return res.status(401).json({
         ok: false,
-        message: 'Usuario incorrecto'
+        message: 'Credenciales incorrectas'
       });
     }
 
     if (!dbUser.state) {
-      return res.status(403).json({
+      await transaction.commit();
+
+      return res.status(401).json({
         ok: false,
         message:
           'Este usuario tiene el acceso bloqueado. Consulte al administrador del sistema'
       });
     }
 
-    const passwdIsValid = bcrypt.compareSync(password, dbUser.password);
+    const pwdIsValid = await bcrypt.compare(password, dbUser.password);
 
-    if (!passwdIsValid) {
-      return res.status(400).json({
+    if (!pwdIsValid) {
+      await transaction.commit();
+
+      return res.status(401).json({
         ok: false,
-        message: 'Contraseña incorrecta'
+        message: 'Credenciales incorrectas'
       });
     }
 
-    const token = await generateJWT(dbUser.id, dbUser.role);
+    const { authToken, refreshToken } = generateTokens(
+      dbUser.id,
+      dbUser.username,
+      dbUser.role
+    );
 
-    // XXX ver como se puede mandar el token a la cache
+    await Token.create({ idUser: dbUser.id, refreshToken }, { transaction });
+    await transaction.commit();
+
     return res.json({
       ok: true,
-      message: 'Ususrio autenticado',
-      // id: dbUser.id,
-      // username,
-      token: token
+      message: 'Usuario autenticado',
+      authToken,
+      refreshToken
     });
   } catch (err) {
     console.error(err);
+
+    await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
@@ -59,83 +77,79 @@ export const login = async (req = request, res = response) => {
   }
 };
 
-export const register = async (req = request, res = response, next) => {
-  const { name, occupation, area, username, password, role } = req.body;
+// TODO falta testear esta funcion
+export const refreshToken = async (req = request, res = response) => {
+  const { refreshToken } = req.body;
   const transaction = await sequelize.transaction();
 
   try {
-    let dbUser = await User.findOne({ where: { username }, transaction });
-
-    if (dbUser) {
-      return res.status(400).json({
+    if (!refreshToken) {
+      return res.status(401).json({
         ok: false,
-        message: 'Este nombre de usuario ya está en uso'
+        message: 'Refresh token no recibido'
       });
     }
 
-    const dbUsers = await User.findAll({ where: { name }, transaction });
-    const userExists = dbUsers.some(
-      (user) => user.occupation === occupation && user.area === area
+    const isNotExpired = verifyToken(refreshToken, res);
+
+    if (!isNotExpired) {
+      return res.status(401).json({
+        ok: false,
+        message: 'Refresh token expirado',
+        expired: true
+      });
+    }
+
+    const dbToken = await Token.findOne({
+      where: { refreshToken },
+      include: User,
+      transaction
+    });
+
+    // console.log(picocolors.bgCyan(JSON.stringify(dbToken)));
+
+    if (!dbToken) {
+      return res.status(401).json({
+        ok: false,
+        message: 'Refresh token inválido'
+      });
+    }
+
+    // const dbUser = await User.findByPk(dbToken.idUser, { transaction });
+
+    // console.log(picocolors.bgGreen(JSON.stringify(dbUser)));
+
+    const tokens = generateTokens(
+      dbToken.user.id,
+      dbToken.user.username,
+      dbToken.user.role
     );
 
-    if (userExists) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Este trabajador ya tiene un Usuario creado'
-      });
-    }
-
-    const coincidence = dbUsers.some((user) => user.area === area);
-
-    if (coincidence) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Ya existe un trabajador con este nombre en esta Área'
-      });
-    }
-
-    // hash password
-    const salt = bcrypt.genSaltSync();
-    const pwd = bcrypt.hashSync(password, salt);
-    // XXX ver si es mejor lo de hashear la pwd en el modelo directamente
-    const user = await User.create(
-      {
-        name,
-        username,
-        password: pwd,
-        occupation,
-        area,
-        role
-      },
+    await dbToken.update(
+      { refreshToken: tokens.refreshToken },
       { transaction }
     );
 
-    // XXX se quito el token de la  respuesta xk no va
-    // const token = await generateJWT(user.id, username);
-
     await transaction.commit();
 
-    return res.status(201).json({
+    return res.json({
       ok: true,
-      message: 'Usuario creado',
-      data: user
-      // token
+      message: 'Refresh token actualizado',
+      authToken: tokens.authToken,
+      refreshToken: tokens.refreshToken
     });
   } catch (err) {
-    if (err.name === 'SequelizeValidationError') {
-      next(err);
-    }
     console.error(err);
+
     await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
-      message: 'Error al crear el Usuario'
+      message: 'Error al actualizar token'
     });
   }
 };
 
-// XXX falta testear esta funcion
 export const tokenRenewal = async (req = request, res = response) => {
   const { id, username } = req;
 
@@ -149,190 +163,6 @@ export const tokenRenewal = async (req = request, res = response) => {
     idWorker: dbUser.idWorker,
     token
   });
-};
-
-export const update = async (req = request, res = response, next) => {
-  const { id } = req.params;
-  const { name, occupation, area, role } = req.body;
-
-  const transaction = await sequelize.transaction();
-
-  try {
-    let dbUser = await User.findByPk(id, { transaction });
-    const dbUsers = await User.findAll({ where: { name }, transaction });
-    const userExists = dbUsers.some(
-      (user) =>
-        user.id !== dbUser.id &&
-        user.occupation === occupation &&
-        user.area === area
-    );
-
-    if (userExists) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Este trabajador ya tiene un Usuario creado'
-      });
-    }
-
-    const coincidence = dbUsers.some(
-      (user) => user.id !== dbUser.id && user.area === area
-    );
-
-    if (coincidence) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Ya existe un trabajador con este nombre en esta Área'
-      });
-    }
-
-    await dbUser.update(
-      {
-        name,
-        occupation,
-        area,
-        role
-      },
-      { transaction }
-    );
-
-    dbUser = await User.findByPk(id, { transaction });
-
-    await transaction.commit();
-
-    return res.json({
-      ok: true,
-      message: 'Usuario actualizado',
-      data: dbUser
-    });
-  } catch (error) {
-    if (error.name === 'SequelizeValidationError') {
-      next(error);
-    }
-    console.error(error);
-
-    await transaction.rollback();
-
-    return res.status(500).json({
-      ok: false,
-      message: 'Error al actualizar el Usuario'
-    });
-  }
-};
-
-export const getUsers = async (req = request, res = response) => {
-  try {
-    const dbUsers = await User.findAll();
-
-    return res.json({
-      ok: true,
-      data: dbUsers
-    });
-  } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      message: 'Error al obtener los Usuarios'
-    });
-  }
-};
-
-// export const getUsers = async (req = request, res = response) => {
-//   try {
-//     const dbUsers = await User.findAll({ include: [Role, Area] });
-//     const users = dbUsers.map((user) => {
-//       return {
-//         id: user.id,
-//         name: user.name,
-//         occupation: user.occupation,
-//         email: user.email,
-//         area: user.area.name,
-//         role: user.role.role,
-//         username: user.username,
-//         state: user.state
-//       };
-//     });
-
-//     res.json({
-//       ok: true,
-//       arg: users
-//     });
-//   } catch (error) {
-//     console.error(error);
-
-//     res.status(500).json({
-//       ok: false,
-//       msg: 'Error al obtener los Usuarios'
-//     });
-//   }
-// };
-
-export const getWorkers = async (req = request, res = response) => {
-  try {
-    const dbWorkers = await sequelize.query(`SELECT * FROM view_workers`, {
-      type: QueryTypes.SELECT
-    });
-
-    return res.json({
-      data: dbWorkers
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      message: 'Error al obtener los Trabajadores.'
-    });
-  }
-};
-
-export const getById = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbUser = await User.findByPk(id);
-
-    return res.json({
-      ok: true,
-      arg: dbUser
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al obtener el Usuario.'
-    });
-  }
-};
-
-export const getInfo = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const result = await sequelize.query(
-      `
-      			SELECT fn_user_getinfo(:id, 'dbuser');
-            FETCH ALL IN dbuser;
-      			`,
-      {
-        replacements: { id: id },
-        type: QueryTypes.SELECT
-      }
-    );
-
-    const dbUser = result[1];
-
-    return res.json({
-      ok: true,
-      arg: dbUser
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al obtener el Usuario.'
-    });
-  }
 };
 
 export const setLock = async (req = request, res = response) => {
@@ -381,67 +211,14 @@ export const setUnlock = async (req = request, res = response) => {
   }
 };
 
-export const isAdmin = async (req = request, res = response) => {
-  const { authorization } = req.headers;
-  const idUser = getIdUser(authorization);
-
-  try {
-    const dbUser = await User.findByPk(idUser, { include: Role });
-
-    if (dbUser.role.role === 'Administrador') {
-      return res.json({
-        ok: true,
-        status: true
-      });
-    } else {
-      return res.json({
-        ok: true,
-        status: false
-      });
-    }
-  } catch (error) {
-    console.log(err);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al verificar el rol del usuario'
-    });
-  }
-};
-
-export const getOrganizationsFromUser = async (
-  req = request,
-  res = response
-) => {
-  const { id } = req.params;
-
-  try {
-    const dbOrganizations = await Organization.findAll({
-      where: { idLeader: id }
-    });
-
-    return res.json({
-      ok: true,
-      arg: dbOrganizations
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      ok: true,
-      msg: 'Error al obtener las Organizaciones'
-    });
-  }
-};
-
 export const changePassword = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { oldPwd, newPwd } = req.body;
+  const idUser = req.user.id;
+  const { currentPassword, newPassword } = req.body;
   const transaction = await sequelize.transaction();
 
   try {
-    const dbUser = await User.findByPk(id, { transaction });
-    const pwdIsValid = await bcrypt.compare(oldPwd, dbUser.password);
+    const dbUser = await User.findByPk(idUser, { transaction });
+    const pwdIsValid = await bcrypt.compare(currentPassword, dbUser.password);
 
     if (!pwdIsValid) {
       return res.status(400).json({
@@ -451,25 +228,78 @@ export const changePassword = async (req = request, res = response) => {
     }
 
     const salt = await bcrypt.genSalt();
-    const newHashedPwd = await bcrypt.hash(newPwd, salt);
+    const newHashedPwd = await bcrypt.hash(newPassword, salt);
 
-    await dbUser.update({
-      password: newHashedPwd
-    });
+    await dbUser.update(
+      {
+        password: newHashedPwd
+      },
+      { transaction }
+    );
+    await Token.destroy({ where: { idUser: dbUser.id }, transaction });
+
+    const { authToken, refreshToken } = generateTokens(
+      dbUser.id,
+      dbUser.username,
+      dbUser.role
+    );
 
     await transaction.commit();
 
     return res.json({
       ok: true,
-      message: 'Usuario actualizado'
+      message: 'Contraseña actualizada',
+      authToken,
+      refreshToken
     });
   } catch (err) {
     console.log(err);
+
     await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
       message: 'Error al cambiar la contraseña'
+    });
+  }
+};
+
+export const logout = async (req = request, res = response) => {
+  const authHeader = req.headers['authorization'];
+  const token = undefined;
+  const { refreshToken } = req.body;
+  const transaction = await sequelize.transaction();
+
+  if (authHeader && authHeader.includes('Bearer ')) {
+    token = authHeader.split(' ')[1];
+    console.log(picocolors.magenta(token));
+    revokeToken(token);
+  }
+
+  try {
+    // if (token) {
+    //   console.log(picocolors.magenta(token));
+    //   revokeToken(token);
+    // }
+
+    if (refreshToken) {
+      await Token.destroy({ where: { refreshToken }, transaction });
+    }
+
+    await transaction.commit();
+
+    return res.json({
+      ok: true,
+      message: 'La sesión ha sido sesión cerrada'
+    });
+  } catch (err) {
+    console.log(err);
+
+    await transaction.rollback();
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al cerrar la sesión'
     });
   }
 };

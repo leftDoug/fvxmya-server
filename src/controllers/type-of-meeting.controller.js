@@ -1,73 +1,87 @@
 import { request, response } from 'express';
-import { QueryTypes } from 'sequelize';
 
-import { Meeting } from '../models/Meeting.js';
-import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
-import { sequelize } from '../db/config.js';
 import { Organization } from '../models/Organization.js';
-import { getDateFromDb } from '../helpers/utils.js';
-import { Agenda } from '../models/Agenda.js';
+import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
 
 export const getAll = async (req = request, res = response) => {
   try {
-    const dbToms = await TypeOfMeeting.findAll({ where: { state: true } });
-    const toms = dbToms.map((tom) => ({
-      id: tom.id,
-      name: tom.name,
-      idOrganization: tom.idOrganization
+    const dbToms = await TypeOfMeeting.findAll({ include: Organization });
+    const toms = dbToms.map((t) => ({
+      id: t.id,
+      name: t.name,
+      organization: {
+        id: t.organization.id,
+        name: t.organization.name
+      }
     }));
+
     return res.json({
+      ok: true,
       data: toms
     });
   } catch (err) {
     console.error(err);
+
     return res.status(500).json({
+      ok: false,
       message: 'Error al listar los Tipos De Reuniones'
+    });
+  }
+};
+
+export const getAllFrom = async (req = request, res = response) => {
+  const { id } = req.params;
+  const idUser = req.user.id;
+
+  try {
+    const dbToms = await TypeOfMeeting.findAll({
+      where: { idOrganization: parseInt(id) },
+      include: Organization
+    });
+    const toms = dbToms.map((t) => ({
+      id: t.id,
+      name: t.name,
+      organization: {
+        id: t.organization.id,
+        name: t.organization.name
+      }
+    }));
+
+    if (dbToms.length > 0) {
+      const dbOrganization = await Organization.findByPk(
+        dbToms[0].idOrganization
+      );
+
+      if (idUser !== dbOrganization.idLeader) {
+        return res.status(403).json({
+          ok: false,
+          message: 'Se requiren permisos para acceder a esta información'
+        });
+      }
+    }
+
+    return res.json({
+      ok: true,
+      data: toms
+    });
+  } catch (err) {
+    console.log(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al obtener los Tipos de Reuniones'
     });
   }
 };
 
 export const getById = async (req = request, res = response) => {
   const { id } = req.params;
-
-  try {
-    const dbTom = await TypeOfMeeting.findByPk(parseInt(id, 10));
-
-    if (!dbTom) {
-      return res.status(404).json({
-        message: 'Tipo de Reunión no encontrado'
-      });
-    }
-    const tom = {
-      id: dbTom.id,
-      name: dbTom.name,
-      idOrganization: dbTom.idOrganization
-    };
-    return res.json({
-      data: tom
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      msg: 'Error al buscar el Tipo de Reunión'
-    });
-  }
-};
-
-export const getInfo = async (req = request, res = response) => {
-  const { id } = req.params;
+  const idUser = req.user.id;
 
   try {
     const dbTom = await TypeOfMeeting.findByPk(parseInt(id), {
       include: Organization
     });
-
-    if (!dbTom) {
-      return res.status(404).json({
-        message: 'Tipo de Reunión no encontrado'
-      });
-    }
-
     const tom = {
       id: dbTom.id,
       name: dbTom.name,
@@ -76,12 +90,23 @@ export const getInfo = async (req = request, res = response) => {
         name: dbTom.organization.name
       }
     };
+    const dbOrganization = await Organization.findByPk(dbTom.idOrganization);
+
+    if (idUser !== dbOrganization.idLeader) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Se requiren permisos para acceder a esta información'
+      });
+    }
+
     return res.json({
-      data: dbTom
+      ok: true,
+      data: tom
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
+      ok: false,
       message: 'Error al buscar el Tipo de Reunión'
     });
   }
@@ -173,62 +198,6 @@ export const remove = async (req = request, res = response) => {
     console.log(err);
     return res.status(500).json({
       message: 'Error al eliminar el Tipo de Reunión'
-    });
-  }
-};
-
-export const getMeetings = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbMeetings = await Meeting.findAll({
-      where: { idTypeOfMeeting: parseInt(id, 10) }
-    });
-    const meetings = dbMeetings.map((m) => ({
-      id: m.id,
-      name: m.name,
-      session: m.session,
-      date: getDateFromDb(m.date)
-    }));
-    return res.json({
-      data: meetings
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      message: 'Error al obtener las Reuniones'
-    });
-  }
-};
-
-export const getAgendas = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbAgendas = await Agenda.findAll({ where: { idTypeOfMeeting: id } });
-    return res.json({ data: dbAgendas });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      message: 'Error al obtener las Agendas'
-    });
-  }
-};
-
-export const getAllFrom = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbToms = await TypeOfMeeting.findAll({
-      where: { idOrganization: parseInt(id) }
-    });
-    return res.json({
-      data: dbToms
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      message: 'Error al obtener los Tipos de Reuniones'
     });
   }
 };

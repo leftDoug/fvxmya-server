@@ -1,35 +1,29 @@
 import { Router } from 'express';
 
 import {
+  close,
   create,
-  getAgreements,
   getAll,
   getAllFrom,
   getById,
-  getInfo,
-  getOrganization,
-  // getParticipants,
-  // getOrganization,
+  open,
   setAttendance,
-  setClose,
-  setOpen,
   update
 } from '../controllers/meeting.controller.js';
+import { authenticateToken, isLeader } from '../middlewares/authMiddleware.js';
+import { findByPk } from '../middlewares/findByPk.js';
 
 const router = Router();
 
+// TODO eliminar
 router.get('/', getAll);
-router.get('/type-of-meeting/:id', getAllFrom);
+router.use(authenticateToken, isLeader);
+router.get('/type-meeting/:id', findByPk, getAllFrom);
+router.get('/:id', findByPk, getById);
 router.post('/', create);
-router.get('/agreements/:id', getAgreements);
-// router.get('/:id/participants', getParticipants);
-// router.get('/:id/organization', getOrganization);
-router.get('/:id', getById);
-router.get('/organization/:id', getOrganization);
-router.get('/info/:id', getInfo);
-router.patch('/:id', update);
-router.patch('/attendance/:id', setAttendance);
-router.patch('/open/:id', setOpen);
-router.patch('/close/:id', setClose);
+router.patch('/attendance/:id', findByPk, setAttendance);
+router.patch('/open/:id', findByPk, open);
+router.patch('/close/:id', findByPk, close);
+router.patch('/:id', findByPk, update);
 
 export default router;

@@ -1,27 +1,29 @@
 import { Router } from 'express';
 
 import {
+  cancel,
+  complete,
   create,
-  getAllFromMeeting,
+  getAll,
+  getAllFrom,
   getAllFromUser,
   getById,
-  getInfo,
-  getResponses,
-  setCancelled,
-  setCompleted,
   update
 } from '../controllers/agreement.controller.js';
+import { authenticateToken, isLeader } from '../middlewares/authMiddleware.js';
+import { findByPk } from '../middlewares/findByPk.js';
 
 const router = Router();
 
-router.get('/', getAllFromUser);
-router.get('/:id', getById);
-router.get('/info/:id', getInfo);
-router.get('/meeting/:id', getAllFromMeeting);
-router.get('/responses/:id', getResponses);
+// TODO eliminar
+router.get('/', getAll);
+router.use(authenticateToken);
+router.get('/meeting/:id', isLeader, findByPk, getAllFrom);
+router.get('/responsible', getAllFromUser);
+router.get('/:id', findByPk, getById);
 router.post('/', create);
-router.patch('/:id', update);
-router.patch('/complete/:id', setCompleted);
-router.patch('/cancel/:id', setCancelled);
+router.patch('/complete/:id', findByPk, complete);
+router.patch('/cancel/:id', findByPk, cancel);
+router.patch('/:id', findByPk, update);
 
 export default router;

@@ -7,13 +7,38 @@ import { Meeting } from '../models/Meeting.js';
 import { Response } from '../models/Response.js';
 import { User } from '../models/User.js';
 
+export const getAll = async (req = request, res = response) => {
+  try {
+    const dbResponses = await Response.findAll({ include: Agreement });
+    const responses = dbResponses.map((r) => ({
+      id: r.id,
+      content: r.content,
+      agreement: {
+        id: r.agreement.id,
+        content: r.agreement.content
+      }
+    }));
+
+    return res.json({
+      ok: true,
+      data: responses
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al listar las Respuestas'
+    });
+  }
+};
+
 export const create = async (req = request, res = response) => {
   const { idAgreement, content } = req.body;
+  const idUser = req.user.id;
   const transaction = await sequelize.transaction();
 
   try {
-    await Response.create({ idAgreement, content }, { transaction });
-
     const dbAgreement = await Agreement.findByPk(idAgreement, {
       include: [
         { model: User, as: 'responsible' },
@@ -22,6 +47,16 @@ export const create = async (req = request, res = response) => {
       ],
       transaction
     });
+
+    if (idUser !== dbAgreement.idResponsible) {
+      await transaction.commit();
+
+      return res.status(403).json({
+        ok: false,
+        message: 'Se requieren permisos para realizar esta acción'
+      });
+    }
+
     const agreement = {
       id: dbAgreement.id,
       number: dbAgreement.number,
@@ -42,6 +77,17 @@ export const create = async (req = request, res = response) => {
         content: r.content
       }))
     };
+    const newResponse = await Response.create(
+      { idAgreement, content },
+      { transaction }
+    );
+    agreement.responses = [
+      ...agreement.responses,
+      {
+        id: newResponse.id,
+        content: newResponse.content
+      }
+    ];
 
     await transaction.commit();
 
@@ -52,71 +98,12 @@ export const create = async (req = request, res = response) => {
     });
   } catch (err) {
     console.log(err);
+
     await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
       message: 'Error al agregar la Respuesta'
-    });
-  }
-};
-
-// export const create = async (req = request, res = response) => {
-//   const { content, idAgreement } = req.body;
-
-//   try {
-//     await Response.create({ content, idAgreement });
-
-//     return res.status(201).json({
-//       ok: true,
-//       msg: 'Respuesta agregada.'
-//     });
-//   } catch (err) {
-//     console.error(err);
-
-//     return res.status(500).json({
-//       ok: false,
-//       msg: 'Error al agregar la Respuesta.'
-//     });
-//   }
-// };
-
-export const validate = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { valid } = req.body;
-
-  try {
-    const dbResponse = await Response.findByPk(id);
-
-    dbResponse.update({ valid });
-    return res.status(201).json({
-      ok: true,
-      msg: 'Respuesta revisada.'
-    });
-  } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al revisar la Respuesta.'
-    });
-  }
-};
-
-export const getAll = async (req = request, res = response) => {
-  try {
-    const dbResponses = await Response.findAll();
-
-    return res.json({
-      ok: true,
-      arg: dbResponses
-    });
-  } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al listar las Respuestas.'
     });
   }
 };

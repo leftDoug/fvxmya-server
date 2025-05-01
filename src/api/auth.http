@@ -5,7 +5,7 @@ GET http://localhost:4000/api/auth/users HTTP/1.1
 GET http://localhost:4000/api/auth/workers HTTP/1.1
 
 ### getUserById
-GET http://localhost:4000/api/auth/users/1b38b1d0-efee-11ef-a14b-dbf1a2c78c20 HTTP/1.1
+GET http://localhost:4000/api/auth/users/18632520-0980-11f0-b064-996f7f03ee41 HTTP/1.1
 
 ### getUserInfo
 GET http://localhost:4000/api/auth/users/1b38b1d0-efee-11ef-a14b-dbf1a2c78c20/info HTTP/1.1
@@ -44,6 +44,15 @@ POST http://localhost:4000/api/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "username":"usuario1",
-  "password":"12345678"
+  "username":"admin",
+  "password":"admin"
+}
+
+### changePassword
+PATCH http://localhost:4000/api/auth/users/change-password/53cbe850-230b-11f0-806b-4bf777899c1b HTTP/1.1
+Content-Type: application/json
+
+{
+  "oldPwd":"ebrito",
+  "newPwd":"ebrito"
 }

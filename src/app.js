@@ -14,6 +14,7 @@ import meetingsRoutes from './routes/meetings.routes.js';
 import responsesRoutes from './routes/responses.routes.js';
 import topicsRoutes from './routes/topics.routes.js';
 import typesOfMeetingsRoutes from './routes/types-of-meetings.routes.js';
+import usersRoutes from './routes/users.routes.js';
 
 // create express application/server
 const app = express();
@@ -57,13 +58,13 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('', barFooRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/organizations', organizationsRoutes);
-// app.use('/api/workers', workersRoutes);
-app.use('/api/types-of-meetings', typesOfMeetingsRoutes);
+app.use('/api/types-meetings', typesOfMeetingsRoutes);
 app.use('/api/agendas', agendasRoutes);
 app.use('/api/meetings', meetingsRoutes);
 app.use('/api/responses', responsesRoutes);
 app.use('/api/agreements', agreementsRoutes);
 app.use('/api/topics', topicsRoutes);
+app.use('/api/users', usersRoutes);
 app.use((req, res) => {
   return res.status(404).json({
     ok: false,

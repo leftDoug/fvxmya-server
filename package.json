@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development node --watch ./src/index.js",
+    "dev": "cross-env NODE_ENV=development nodemon ./src/index.js",
     "start": "node ./src/index.js",
     "test": "set NODE_OPTIONS=--experimental-vm-modules && cross-env NODE_ENV=test jest --verbose --silent",
     "test:watch": "npm run test -- --watch",
@@ -26,7 +26,8 @@
     "picocolors": "1.1.1",
     "sequelize": "6.37.3",
     "swagger-jsdoc": "6.2.8",
-    "swagger-ui-express": "5.0.1"
+    "swagger-ui-express": "5.0.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "jest": "29.7.0",
@@ -34,4 +35,3 @@
     "supertest": "7.0.0"
   }
 }
-

@@ -12,7 +12,8 @@ export default function setupAssociations(models) {
     User,
     MeetingAttendance,
     OrganizationMembership,
-    MeetingAgenda
+    MeetingAgenda,
+    Token
   } = models;
 
   // ===> agenda
@@ -186,6 +187,21 @@ export default function setupAssociations(models) {
   TypeOfMeeting.belongsTo(Organization, {
     foreignKey: {
       name: 'idOrganization',
+      allowNull: false
+    }
+  });
+
+  // ===> token <===
+  User.hasOne(Token, {
+    foreignKey: {
+      name: 'idUser',
+      allowNull: false
+    }
+  });
+
+  Token.belongsTo(User, {
+    foreignKey: {
+      name: 'idUser',
       allowNull: false
     }
   });

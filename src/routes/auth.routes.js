@@ -1,48 +1,20 @@
 import { Router } from 'express';
 
-import { validateJWT } from '../middlewares/validate-jwt.js';
-
 import {
   changePassword,
-  getById,
-  getInfo,
-  getOrganizationsFromUser,
-  getUsers,
-  getWorkers,
-  isAdmin,
   login,
-  register,
-  setLock,
-  setUnlock,
-  tokenRenewal,
-  update
+  logout,
+  refreshToken
 } from '../controllers/auth.controller.js';
-import { findByPk } from '../middlewares/findByPk.js';
+import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
-// register user
-router.post('/register', register);
+// router.use(authenticateToken);
 
-// login
 router.post('/login', login);
-
-// renew token
-router.get('/renew', validateJWT, tokenRenewal);
-
-router.get('/users', getUsers);
-router.get('/isadmin', isAdmin);
-router.get('/users/organizations/:id', getOrganizationsFromUser);
-
-router.get('/users/:id', getById);
-
-router.get('/users/info/:id', findByPk, getInfo);
-
-router.get('/workers', getWorkers);
-
-router.patch('/users/:id', update);
-router.patch('/users/lock/:id', setLock);
-router.patch('/users/unlock/:id', setUnlock);
-router.patch('/change-password/:id', changePassword);
+router.post('/refresh-token', refreshToken);
+router.post('/logout', logout);
+router.post('/change-password', authenticateToken, changePassword);
 
 export default router;

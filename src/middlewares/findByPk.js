@@ -1,27 +1,124 @@
 import { request, response } from 'express';
 
+import { validate } from 'uuid';
 import { idUserRegExp } from '../helpers/utils.js';
+import { Agenda } from '../models/Agenda.js';
+import { Agreement } from '../models/Agreement.js';
+import { Meeting } from '../models/Meeting.js';
 import { Organization } from '../models/Organization.js';
+import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
 import { User } from '../models/User.js';
 
 export const findByPk = async (req = request, res = response, next) => {
   const model = req.baseUrl.split('/')[2];
-  const models = ['organizations'];
+  let model2 = '';
   let id = null;
   let found = null;
   let message = '';
   let word = '';
 
-  if (models.includes(model)) {
-    id = req.params.id;
-  }
-
   try {
     switch (model) {
       case 'organizations':
-        found = await Organization.findByPk(id);
-        message = 'Organización no encontrada.';
+        model2 = req.url.split('/')[1];
+        id = req.params.id;
+
+        if (model2 === 'leader') {
+          found = await Organization.findAll({ where: { idLeader: id } });
+        } else if (!isNaN(id)) {
+          found = await Organization.findByPk(parseInt(id));
+        }
+
+        message = 'Organización no encontrada';
         word = 'Organización';
+
+        break;
+      case 'types-meetings':
+        model2 = req.url.split('/')[1];
+        id = req.params.id;
+
+        if (!isNaN(id)) {
+          if (model2 === 'organization') {
+            found = await TypeOfMeeting.findAll({
+              where: { idOrganization: parseInt(id) }
+            });
+          } else {
+            found = await TypeOfMeeting.findByPk(parseInt(id));
+          }
+        }
+
+        message = 'Tipo de Reunión no encontrado';
+        word = 'Tipo de Reunion';
+
+        break;
+      case 'meetings':
+        model2 = req.url.split('/')[1];
+        id = req.params.id;
+
+        if (!isNaN(id)) {
+          if (model2 === 'type-meeting') {
+            found = await Meeting.findAll({
+              where: { idTypeOfMeeting: parseInt(id) }
+            });
+          } else {
+            found = await Meeting.findByPk(parseInt(id));
+          }
+        }
+
+        message = 'Reunión no encontrada';
+        word = 'Reunion';
+
+        break;
+      case 'agendas':
+        model2 = req.url.split('/')[1];
+        id = req.params.id;
+
+        if (!isNaN(id)) {
+          if (model2 === 'type-meeting') {
+            found = await Agenda.findAll({
+              where: { idTypeOfMeeting: parseInt(id) }
+            });
+          } else {
+            found = await Agenda.findByPk(parseInt(id));
+          }
+        }
+
+        message = 'Agenda no encontrada';
+        word = 'Agenda';
+
+        break;
+      case 'users':
+        id = req.params.id;
+
+        if (validate(id)) {
+          found = await User.findByPk(id);
+        }
+
+        message = 'Usuario no encontrado';
+        word = 'Usuario';
+
+        break;
+      case 'agreements':
+        model2 = req.url.split('/')[1];
+        id = req.params.id;
+
+        if (model2 === 'meeting' && !isNaN(id)) {
+          found = await Agreement.findAll({
+            where: { idMeeting: parseInt(id) }
+          });
+        }
+        // else if (model2 === 'responsible' && validate(id)) {
+        //   found = await Agreement.findAll({
+        //     where: { idResponsible: id }
+        //   });
+        // }
+        else {
+          found = await Agreement.findByPk(id);
+        }
+
+        message = 'Acuerdo no encontrado';
+        word = 'Acuerdo';
+
         break;
       case 'auth':
         if (req.path.includes('register') || req.method === 'PATCH') {

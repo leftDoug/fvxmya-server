@@ -20,6 +20,7 @@ import setupAssociations from './models/associations.js';
 import { getBarModel } from './models/Bar.js';
 import { getFooModel } from './models/Foo.js';
 import { getMeetingTopicModel } from './models/MeetingTopic.js';
+import { getTokenModel } from './models/Token.js';
 
 dotenv.config();
 
@@ -37,7 +38,8 @@ const models = {
   User: getUserModel(),
   MeetingAttendance: getMeetingWorkerModel(),
   OrganizationMembership: getOrganizationMemberModel(),
-  MeetingAgenda: getMeetingTopicModel()
+  MeetingAgenda: getMeetingTopicModel(),
+  Token: getTokenModel()
 };
 setupAssociations(models);
 
@@ -45,7 +47,7 @@ async function dbConnection() {
   try {
     await sequelize.authenticate();
     // await MeetingWorker.sync({ alter: true });
-    // await User.sync({ alter: true });
+    // await Token.sync({ force: true });
     // await sequelize.sync({ force: true });
     // await Bar.sync({ force: true });
     // await Foo.sync({ force: true });

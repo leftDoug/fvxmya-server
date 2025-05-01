@@ -1,11 +1,14 @@
 ### getAll
 GET http://localhost:4000/api/meetings HTTP/1.1
 
+### getAllFrom
+GET http://localhost:4000/api/meetings/type-of-meeting/1 HTTP/1.1
+
 ### getById
 GET http://localhost:4000/api/meetings/7 HTTP/1.1
 
 ### getInfo
-GET http://localhost:4000/api/meetings/info/39 HTTP/1.1
+GET http://localhost:4000/api/meetings/info/20 HTTP/1.1
 
 ### getParticipants
 GET http://localhost:4000/api/meetings/7/participants HTTP/1.1
@@ -18,40 +21,85 @@ POST http://localhost:4000/api/meetings HTTP/1.1
 Content-Type: application/json
 
 {
-  "id": "",
-  "name": "LA VELDADERA VUELTA",
-  "date": "2025-03-29T04:00:00.000Z",
-  "startTime": "2025-03-25T13:00:24.668Z",
-  "endTime": "2078-03-25T16:00:24.668Z",
-  "session": "Extraordinaria",
+  "id": 0,
+  "name": "Consejo de Direccion",
+  "date": "2038-05-12T04:00:00.000Z",
+  "startTime": "2025-04-24T01:02:06.014Z",
+  "endTime": "2025-04-24T01:02:06.014Z",
+  "session": "ordinaria",
   "idTypeOfMeeting": 1,
   "idSecretary": "6b4f78c0-efee-11ef-a14b-dbf1a2c78c20",
   "members": [
-    "9ddb61f0-efee-11ef-a14b-dbf1a2c78c20"
+    {
+      "id": "9ddb61f0-efee-11ef-a14b-dbf1a2c78c20",
+      "name": "Carlitos Brown"
+    }
   ],
   "guests": [
-    "18632520-0980-11f0-b064-996f7f03ee41"
+    {
+      "id": "9494fd40-0e75-11f0-a3dc-e5fd6e24d599",
+      "name": "carlos marin"
+    },
+    {
+      "id": "32022810-0e75-11f0-a3dc-e5fd6e24d599",
+      "name": "esteba quito"
+    },
+    {
+      "id": "47c7d880-0e74-11f0-a88a-85f9232b9b27",
+      "name": "Jennie La Baby"
+    }
+  ],
+  "topics": [
+    {
+      "id": 14,
+      "name": "TEMAZO 14"
+    },
+    {
+      "id": 70,
+      "name": "TEMAZO 15"
+    },
+    {
+      "id": 71,
+      "name": "TEMAZO 16"
+    }
   ]
 }
 
 ### update
-PATCH http://localhost:4000/api/meetings/39 HTTP/1.1
+PATCH http://localhost:4000/api/meetings/20 HTTP/1.1
 Content-Type: application/json
 
 {
-  "id": "",
-  "name": "Meeting Two.Two",
-  "date": "2027-03-29T04:00:00.000Z",
-  "startTime": "2025-03-25T10:00:24.668Z",
-  "endTime": "2025-03-25T12:00:24.668Z",
-  "session": "Ordinaria",
+  "id": 20,
+  "name": "Consejo de Direccion (actualizado)",
+  "date": "2038-05-12T04:00:00.000Z",
+  "startTime": "2025-04-24T01:02:06.014Z",
+  "endTime": "2025-04-24T01:02:06.014Z",
+  "session": "ORDINARIA",
   "idTypeOfMeeting": 1,
   "idSecretary": "6b4f78c0-efee-11ef-a14b-dbf1a2c78c20",
   "members": [
-    "9ddb61f0-efee-11ef-a14b-dbf1a2c78c20",
-    "6b4f78c0-efee-11ef-a14b-dbf1a2c78c20"
+    {
+      "id": "9ddb61f0-efee-11ef-a14b-dbf1a2c78c20",
+      "name": "Carlitos Brown"
+    }
   ],
-  "guests": []
+  "guests": [
+    {
+      "id": "47c7d880-0e74-11f0-a88a-85f9232b9b27",
+      "name": "Jennie La Baby"
+    }
+  ],
+  "topics": [
+    {
+      "id": 70,
+      "name": "TEMAZO 15"
+    },
+    {
+      "id": 71,
+      "name": "TEMAZO 16"
+    }
+  ]
 }
 
 ### setAssistance

@@ -2,8 +2,141 @@ import { request, response } from 'express';
 
 import { sequelize } from '../db/config.js';
 import { Agenda } from '../models/Agenda.js';
+import { Organization } from '../models/Organization.js';
 import { Topic } from '../models/Topic.js';
 import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
+
+export const getAll = async (req = request, res = response) => {
+  try {
+    const dbAgendas = await Agenda.findAll({
+      include: [{ model: TypeOfMeeting, as: 'typeOfMeeting' }, { model: Topic }]
+    });
+    const agendas = dbAgendas.map((a) => ({
+      id: a.id,
+      year: new Date(`01/01/${a.year}`),
+      typeOfMeeting: {
+        id: a.typeOfMeeting.id,
+        name: a.typeOfMeeting.name
+      },
+      topics: a.topics.map((t) => ({
+        id: t.id,
+        name: t.name,
+        month: new Date(`${t.month}/01/${a.year}`),
+        monthNumber: t.month - 1
+      }))
+    }));
+
+    return res.json({
+      ok: true,
+      data: agendas
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al listar las Agendas'
+    });
+  }
+};
+
+export const getAllFrom = async (req = request, res = response) => {
+  const { id } = req.params;
+  const idUser = req.user.id;
+
+  try {
+    const dbAgendas = await Agenda.findAll({
+      where: { idTypeOfMeeting: parseInt(id) },
+      include: [{ model: TypeOfMeeting, as: 'typeOfMeeting' }, { model: Topic }]
+    });
+    const agendas = dbAgendas.map((a) => ({
+      id: a.id,
+      year: new Date(`01/01/${a.year}`),
+      typeOfMeeting: {
+        id: a.typeOfMeeting.id,
+        name: a.typeOfMeeting.name
+      },
+      topics: a.topics.map((t) => ({
+        id: t.id,
+        name: t.name,
+        month: new Date(`${t.month}/01/${a.year}`),
+        monthNumber: t.month - 1
+      }))
+    }));
+
+    if (dbAgendas.length > 0) {
+      const dbOrganization = await Organization.findByPk(
+        dbAgendas[0].typeOfMeeting.idOrganization
+      );
+
+      if (idUser !== dbOrganization.idLeader) {
+        return res.status(403).json({
+          ok: false,
+          message: 'Se requiren permisos para acceder a esta información'
+        });
+      }
+    }
+
+    return res.json({
+      ok: true,
+      data: agendas
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al listar las Agendas'
+    });
+  }
+};
+
+export const getById = async (req = request, res = response) => {
+  const { id } = req.params;
+  const idUser = req.user.id;
+
+  try {
+    const dbAgenda = await Agenda.findByPk(parseInt(id), {
+      include: [{ model: Topic }, { model: TypeOfMeeting, as: 'typeOfMeeting' }]
+    });
+    const agenda = {
+      id: dbAgenda.id,
+      year: new Date(`01/01/${dbAgenda.year}`),
+      typeOfMeeting: {
+        id: dbAgenda.typeOfMeeting.id,
+        name: dbAgenda.typeOfMeeting.name
+      },
+      topics: dbAgenda.topics.map((t) => ({
+        id: t.id,
+        name: t.name,
+        month: new Date(`${t.month}/01/${dbAgenda.year}`),
+        monthNumber: t.month - 1
+      }))
+    };
+    const dbOrganization = await Organization.findByPk(
+      dbAgenda.typeOfMeeting.idOrganization
+    );
+
+    if (idUser !== dbOrganization.idLeader) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Se requiren permisos para acceder a esta información'
+      });
+    }
+
+    return res.json({
+      ok: true,
+      data: agenda
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al obtener datos de la Agenda'
+    });
+  }
+};
 
 export const create = async (req = request, res = response) => {
   const { year, idTypeOfMeeting, topics } = req.body;
@@ -133,198 +266,44 @@ export const update = async (req = request, res = response) => {
   }
 };
 
-export const getAll = async (req = request, res = response) => {
-  try {
-    const dbAgendas = await Agenda.findAll({
-      include: { model: TypeOfMeeting, as: 'typeOfMeeting' }
-    });
-    const agendas = dbAgendas.map((a) => ({
-      id: a.id,
-      year: a.year,
-      typeOfMeeting: {
-        id: a.typeOfMeeting.id,
-        name: a.typeOfMeeting.name
-      }
-    }));
-    return res.json({
-      data: agendas
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      message: 'Error al listar las Agendas'
-    });
-  }
-};
-
-export const getById = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbAgenda = await Agenda.findByPk(parseInt(id));
-    const agenda = {
-      id: dbAgenda.id,
-      year: new Date(`01/01/${dbAgenda.year}`),
-      idTypeOfMeeting: dbAgenda.idTypeOfMeeting
-    };
-    return res.json({
-      data: agenda
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      message: 'Error al buscar la Agenda'
-    });
-  }
-};
-
-export const getTopicsFrom = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { year } = req.query;
-
-  try {
-    const dbAgenda = await Agenda.findOne({
-      where: { year, idTypeOfMeeting: parseInt(id) },
-      include: Topic
-    });
-
-    if (!dbAgenda) {
-      return res.status(404).json({
-        message: 'No se ha encontrado ninguna Agenda con estos datos'
-      });
-    }
-
-    const topics = dbAgenda.topics.map((t) => ({
-      id: t.id,
-      name: t.name
-    }));
-    return res.json({
-      data: topics
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      message: 'Error al obtener los Temas'
-    });
-  }
-};
-
-export const getInfo = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbAgenda = await Agenda.findByPk(id, {
-      include: [{ model: Topic }, { model: TypeOfMeeting, as: 'typeOfMeeting' }]
-    });
-    const agenda = {
-      id: dbAgenda.id,
-      year: new Date(`01/01/${dbAgenda.year}`),
-      typeOfMeeting: {
-        id: dbAgenda.typeOfMeeting.id,
-        name: dbAgenda.typeOfMeeting.name
-      },
-      topics: dbAgenda.topics.map((t) => ({
-        id: t.id,
-        name: t.name,
-        month: new Date(`${t.month}/01/${dbAgenda.year}`),
-        monthNumber: t.month - 1
-      }))
-      // })).topics.forEach((topic) => {
-      //   topic.month = new Date(`${topic.month + 1}/01/${dbAgenda.year}`);
-    };
-
-    // dbAgenda.year = new Date(`01/01/${dbAgenda.year}`);
-
-    // const a = {
-    //   id: dbAgenda.id,
-    //   year: new Date(`01/01/${dbAgenda.year}`),
-    //   idTypeOfMeeting: dbAgenda.idTypeOfMeeting
-    // };
-
-    return res.json({
-      data: agenda
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      message: 'Error al obtener datos de la Agenda'
-    });
-  }
-};
-
-export const getTopics = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbAgenda = await Agenda.findByPk(id);
-
-    if (!dbAgenda) {
-      return res.status(404).json({
-        ok: false,
-        msg: 'Agenda no encontrada.'
-      });
-    }
-
-    const dbTopics = await dbAgenda.getTopics();
-
-    if (!dbTopics) {
-      return res.status(404).json({
-        ok: false,
-        msg: 'No se encontraron Temas en la Agenda.'
-      });
-    }
-
-    return res.status(200).json({
-      ok: true,
-      args: dbTopics
-    });
-  } catch (err) {
-    console.log(err);
-
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al buscar los Temas de la Agenda'
-    });
-  }
-};
-
 export const remove = async (req = request, res = response) => {
   const { id } = req.params;
+  const idUser = req.user.id;
+  const transaction = await sequelize.transaction();
 
   try {
-    const dbAgenda = await Agenda.findByPk(parseInt(id));
-    const name = `(removed) ${dbAgenda.name}`;
+    const dbAgenda = await Agenda.findByPk(
+      parseInt(id),
+      {
+        include: [{ model: TypeOfMeeting, as: 'typeOfMeeting' }]
+      },
+      transaction
+    );
+    const dbOrganization = await Organization.findByPk(
+      dbAgenda.typeOfMeeting.idOrganization,
+      { transaction }
+    );
 
-    await dbAgenda.update({ name, state: false });
+    if (idUser !== dbOrganization.idLeader) {
+      await transaction.commit();
 
-    // await Agenda.update({ name, state: false }, { where: { id } });
+      return res.status(403).json({
+        ok: false,
+        message: 'Se requiren permisos para acceder a esta información'
+      });
+    }
+
+    await Agenda.destroy({ where: { id: parseInt(id) }, transaction });
+    await transaction.commit();
 
     return res.json({
       ok: true,
-      msg: 'Agenda eliminada'
+      message: 'Agenda borrada'
     });
   } catch (error) {
     console.log(error);
 
-    return res.status(500).json({
-      ok: false,
-      msg: 'Error al eliminar la Agenda'
-    });
-  }
-};
-
-export const erase = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    await Agenda.destroy({ where: { id: parseInt(id) } });
-
-    return res.json({
-      ok: true,
-      msg: 'Agenda borrada'
-    });
-  } catch (error) {
-    console.log(error);
+    await transaction.rollback();
 
     return res.status(500).json({
       ok: false,

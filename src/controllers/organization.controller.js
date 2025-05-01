@@ -8,9 +8,11 @@ import { User } from '../models/User.js';
 export const getAll = async (req = request, res = response) => {
   try {
     const dbOrganizations = await Organization.findAll({
-      include: { model: User, as: 'leader' }
+      include: [
+        { model: User, as: 'leader' },
+        { model: User, as: 'members' }
+      ]
     });
-
     const organizations = dbOrganizations.map((organization) => ({
       id: organization.id,
       name: organization.name,
@@ -18,14 +20,21 @@ export const getAll = async (req = request, res = response) => {
         id: organization.leader.id,
         name: organization.leader.name,
         occupation: organization.leader.occupation
-      }
+      },
+      members: organization.members.map((m) => ({
+        id: m.id,
+        name: m.name,
+        occupation: m.occupation
+      }))
     }));
+
     return res.json({
       ok: true,
       data: organizations
     });
   } catch (err) {
     console.error(err);
+
     return res.status(500).json({
       ok: false,
       message: 'Error al listar las Organizaciones'
@@ -33,60 +42,49 @@ export const getAll = async (req = request, res = response) => {
   }
 };
 
-export const getById = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbOrganization = await Organization.findByPk(id);
-    return res.json({
-      data: dbOrganization
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      message: 'Error al buscar la Organización'
-    });
-  }
-};
-
 export const getAllFrom = async (req = request, res = response) => {
   const { id } = req.params;
+  const idUser = req.user.id;
 
   try {
-    let dbOrgsAsLeader = await Organization.findAll({
+    const dbOrganizations = await Organization.findAll({
       where: { idLeader: id },
-      include: { model: User, as: 'leader' }
+      include: [
+        { model: User, as: 'leader' },
+        { model: User, as: 'members' }
+      ]
     });
-    dbOrgsAsLeader = dbOrgsAsLeader.map((organization) => ({
+    const organizations = dbOrganizations.map((organization) => ({
       id: organization.id,
       name: organization.name,
       leader: {
         id: organization.leader.id,
         name: organization.leader.name,
         occupation: organization.leader.occupation
-      }
+      },
+      members: organization.members.map((m) => ({
+        id: m.id,
+        name: m.name,
+        occupation: m.occupation
+      }))
     }));
-    const dbOrgsAsMember = await User.findByPk(id, {
-      include: { model: Organization, as: 'orgs' }
-    });
-    const organizations = [
-      ...dbOrgsAsLeader,
-      ...dbOrgsAsMember.orgs
-        .filter(
-          (orgMem) => !dbOrgsAsLeader.some((orgLea) => orgLea.id === orgMem.id)
-        )
-        .map((org) => ({
-          id: org.id,
-          name: org.name,
-          idLeader: org.idLeader
-        }))
-    ];
+
+    if (dbOrganizations.length > 0) {
+      if (idUser !== dbOrganizations[0].idLeader) {
+        return res.status(403).json({
+          ok: false,
+          message: 'Se requiren permisos para acceder a esta información'
+        });
+      }
+    }
+
     return res.json({
       ok: true,
       data: organizations
     });
   } catch (err) {
     console.error(err);
+
     return res.status(500).json({
       ok: false,
       message: 'Error al buscar las Organizaciones'
@@ -94,8 +92,9 @@ export const getAllFrom = async (req = request, res = response) => {
   }
 };
 
-export const getInfo = async (req = request, res = response) => {
+export const getById = async (req = request, res = response) => {
   const { id } = req.params;
+  const idUser = req.user.id;
 
   try {
     const dbOrganization = await Organization.findByPk(id, {
@@ -118,15 +117,24 @@ export const getInfo = async (req = request, res = response) => {
         occupation: m.occupation
       }))
     };
+
+    if (idUser !== organization.leader.id) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Se requiren permisos para acceder a esta información'
+      });
+    }
+
     return res.json({
       ok: true,
       data: organization
     });
   } catch (err) {
     console.error(err);
+
     return res.status(500).json({
       ok: false,
-      message: 'Error al obtener la información de la Organización'
+      message: 'Error al obtener la Organización'
     });
   }
 };
@@ -297,91 +305,6 @@ export const remove = async (req = request, res = response) => {
     console.error(err);
     return res.status(500).json({
       message: 'Error al eliminar la Organización'
-    });
-  }
-};
-
-export const getWorkers = async (req = request, res = response) => {
-  const { id } = req.params;
-
-  try {
-    const dbOrganization = await Organization.findByPk(parseInt(id, 10), {
-      include: { model: User, as: 'members' }
-    });
-    const members = dbOrganization.members.map((m) => ({
-      id: m.id,
-      name: m.name,
-      occupation: m.occupation
-    }));
-    return res.json({
-      ok: true,
-      data: members
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      ok: false,
-      message: 'Error al obtener los Trabajadores'
-    });
-  }
-};
-
-export const addWorkers = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { workersId } = req.body;
-  try {
-    workersId.forEach(async (worker) => {
-      await OrganizationMember.create({ idOrganization: id, idMember: worker });
-    });
-
-    return res.json({
-      ok: true,
-      message: 'Trabajadores agregados.'
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      ok: false,
-      message: 'Error al agregar los Trabajadores.'
-    });
-  }
-};
-
-export const updateWorkers = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { workersId } = req.body;
-  try {
-    const dbWorkers = await OrganizationMember.findAll({
-      where: { idOrganization: id }
-    });
-
-    workersId.forEach(async (worker) => {
-      !dbWorkers.some((w) => {
-        w.id === worker.id;
-      }) &&
-        (await OrganizationMember.create({
-          idOrganization: id,
-          idMember: worker
-        }));
-    });
-
-    dbWorkers.forEach((worker) => {
-      !workersId.some((w) => {
-        w.id === worker.id;
-      }) && worker.destroy();
-    });
-
-    return res.json({
-      ok: true,
-      message: 'Lista de Trabajadores actualizada.'
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      ok: false,
-      message: 'Error al actualizar la lista de Trabajadores.'
     });
   }
 };

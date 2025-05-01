@@ -1,15 +1,13 @@
 import { Router } from 'express';
 
-import {
-  getAll,
-  create,
-  validate
-} from '../controllers/response.controller.js';
+import { create, getAll } from '../controllers/response.controller.js';
+import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
+// TODO eliminar
 router.get('/', getAll);
+router.use(authenticateToken);
 router.post('/', create);
-router.patch('/:id', validate);
 
 export default router;
