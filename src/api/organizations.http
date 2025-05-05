@@ -1,18 +1,12 @@
 ### getAll
 GET http://localhost:4000/api/organizations HTTP/1.1
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFmOGU5NTAwLTIyZmUtMTFmMC1hOTkzLThkZmNjNzEwZGE5MCIsInVzZXJuYW1lIjoiYWRtaW4iLCJyb2xlIjoiVFJBQkFKQURPUiIsImlhdCI6MTc0NTg2ODMzOCwiZXhwIjoxNzQ1ODY4NDU4fQ.lZ8GtC7S6irubjOh9YgWk05aUvsE91LxSg7C7r-Hjrw
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNmYzEzMWYwLTIzZjUtMTFmMC1iZDI0LWNiOTMzOWVlNWExZSIsInVzZXJuYW1lIjoiaGdhcmNpYSIsInJvbGUiOiJMw41ERVIiLCJpYXQiOjE3NDYwNzAxOTMsImV4cCI6MTc0NjA3MDI1M30.OvTOZCy4zYc0o8BCTO_VJ56be1oTyR1x1a8ope-C3aM
 
 ### getById
-GET http://localhost:4000/api/organizations/26 HTTP/1.1
+GET http://localhost:4000/api/organizations/1 HTTP/1.1
 
 ### getAllFrom
-GET http://localhost:4000/api/organizations/worker/6b4f78c0-efee-11ef-a14b-dbf1a2c78c20 HTTP/1.1
-
-### getWorkers
-GET http://localhost:4000/api/organizations/workers/26 HTTP/1.1
-
-### getTypesOfMeetings
-GET http://localhost:4000/api/organizations/types-of-meetings/26 HTTP/1.1
+GET http://localhost:4000/api/organizations/leader/cfc131f0-23f5-11f0-bd24-cb9339ee5a1e HTTP/1.1
 
 ### update
 PATCH http://localhost:4000/api/organizations/6 HTTP/1.1
@@ -32,12 +26,4 @@ Content-Type: application/json
 {
   "name": "Ocho",
   "idLeader":"9ddb61f0-efee-11ef-a14b-dbf1a2c78c20"
-}
-
-### addWorkers
-POST http://localhost:4000/api/organizations/18 HTTP/1.1
-Content-Type: application/json
-
-{
-  "workersId":["6b4f78c0-efee-11ef-a14b-dbf1a2c78c20","1b38b1d0-efee-11ef-a14b-dbf1a2c78c20"]
 }

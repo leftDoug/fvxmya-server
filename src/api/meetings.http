@@ -2,19 +2,10 @@
 GET http://localhost:4000/api/meetings HTTP/1.1
 
 ### getAllFrom
-GET http://localhost:4000/api/meetings/type-of-meeting/1 HTTP/1.1
+GET http://localhost:4000/api/meetings/type-meeting/1 HTTP/1.1
 
 ### getById
-GET http://localhost:4000/api/meetings/7 HTTP/1.1
-
-### getInfo
-GET http://localhost:4000/api/meetings/info/20 HTTP/1.1
-
-### getParticipants
-GET http://localhost:4000/api/meetings/7/participants HTTP/1.1
-
-### getOrganization
-GET http://localhost:4000/api/meetings/7/organization HTTP/1.1
+GET http://localhost:4000/api/meetings/1 HTTP/1.1
 
 ### create
 POST http://localhost:4000/api/meetings HTTP/1.1

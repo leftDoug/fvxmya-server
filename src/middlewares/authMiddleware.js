@@ -62,7 +62,7 @@ export const authenticateToken = async (
 
     return res.status(401).json({
       ok: false,
-      message: 'Token inválido'
+      message: 'Token inválido (auth)'
     });
   }
 };

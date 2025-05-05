@@ -111,7 +111,7 @@ export const create = async (req = request, res = response, next) => {
 
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(password, salt);
-    const user = await User.create(
+    let user = await User.create(
       {
         name,
         username,
@@ -122,6 +122,15 @@ export const create = async (req = request, res = response, next) => {
       },
       { transaction }
     );
+    user = {
+      id: user.id,
+      name: user.name,
+      occupation: user.occupation,
+      area: user.area,
+      username: user.username,
+      role: user.role,
+      state: user.state
+    };
 
     await transaction.commit();
 
@@ -193,7 +202,8 @@ export const update = async (req = request, res = response, next) => {
       name: dbUser.name,
       occupation: dbUser.occupation,
       area: dbUser.area,
-      role: dbUser.role
+      role: dbUser.role,
+      state: dbUser.state
     };
 
     await transaction.commit();

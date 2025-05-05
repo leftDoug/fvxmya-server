@@ -91,6 +91,41 @@ export const getAllFrom = async (req = request, res = response) => {
   }
 };
 
+export const getFromTomAndYear = async (req = request, res = response) => {
+  const { id } = req.params;
+  const { year } = req.query;
+  const idUser = req.user.id;
+
+  try {
+    const dbTom = await TypeOfMeeting.getById(parseInt(id), {
+      include: Organization
+    });
+
+    if (dbTom.organization.idLeader !== idUser) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Se requieren permisos para acceder a esta información'
+      });
+    }
+
+    const dbAgenda = await Agenda.findOne({
+      where: { idTypeOfMeeting: parseInt(id), year }
+    });
+
+    return res.json({
+      ok: true,
+      data: dbAgenda
+    });
+  } catch (err) {
+    console.log(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al buscar la Agenda'
+    });
+  }
+};
+
 export const getById = async (req = request, res = response) => {
   const { id } = req.params;
   const idUser = req.user.id;

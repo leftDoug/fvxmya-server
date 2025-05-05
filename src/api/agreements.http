@@ -1,11 +1,15 @@
 ### getAll
 GET http://localhost:4000/api/agreements HTTP/1.1
 
-### getById
-GET http://localhost:4000/api/agreements/20250212133609661
-
 ### getAllFromMeeting
-GET http://localhost:4000/api/agreements/meeting/3 HTTP/1.1
+GET http://localhost:4000/api/agreements/meeting/1 HTTP/1.1
+
+### getAllFromUser
+GET http://localhost:4000/api/agreements/responsible HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjUzY2JlODUwLTIzMGItMTFmMC04MDZiLTRiZjc3Nzg5OWMxYiIsInVzZXJuYW1lIjoiZWJyaXRvIiwicm9sZSI6IkzDjURFUiIsImlhdCI6MTc0NjEyNjc0MiwiZXhwIjoxNzQ2MTI2ODAyfQ.RcjBYzbJdCnE65OKHT0NINvKbTqZsiyP8bBML9kwMWA
+
+### getById
+GET http://localhost:4000/api/agreements/20250428123414205
 
 ### create
 POST http://localhost:4000/api/agreements HTTP/1.1

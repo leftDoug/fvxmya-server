@@ -1,5 +1,6 @@
 import { request, response } from 'express';
 
+import picocolors from 'picocolors';
 import { sequelize } from '../db/config.js';
 import { Organization } from '../models/Organization.js';
 import { OrganizationMember } from '../models/OrganizationMember.js';
@@ -43,12 +44,13 @@ export const getAll = async (req = request, res = response) => {
 };
 
 export const getAllFrom = async (req = request, res = response) => {
-  const { id } = req.params;
   const idUser = req.user.id;
+
+  console.log(picocolors.magenta(idUser));
 
   try {
     const dbOrganizations = await Organization.findAll({
-      where: { idLeader: id },
+      where: { idLeader: idUser },
       include: [
         { model: User, as: 'leader' },
         { model: User, as: 'members' }
@@ -69,14 +71,15 @@ export const getAllFrom = async (req = request, res = response) => {
       }))
     }));
 
-    if (dbOrganizations.length > 0) {
-      if (idUser !== dbOrganizations[0].idLeader) {
-        return res.status(403).json({
-          ok: false,
-          message: 'Se requiren permisos para acceder a esta información'
-        });
-      }
-    }
+    // TODO borrar
+    // if (dbOrganizations.length > 0) {
+    //   if (idUser !== dbOrganizations[0].idLeader) {
+    //     return res.status(403).json({
+    //       ok: false,
+    //       message: 'Se requiren permisos para acceder a esta información'
+    //     });
+    //   }
+    // }
 
     return res.json({
       ok: true,

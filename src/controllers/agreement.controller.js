@@ -181,6 +181,76 @@ export const getAllFromUser = async (req = request, res = response) => {
   }
 };
 
+export const getAllFromLeader = async (req = request, res = response) => {
+  const idUser = req.user.id;
+
+  try {
+    const dbOrganizations = [
+      ...(await Organization.findAll({ where: { idLeader: idUser } }))
+    ];
+
+    if (dbOrganizations.length > 0 && dbOrganizations[0].idLeader !== idUser) {
+      return res.status(403).json({
+        ok: false,
+        message: 'Se requiren permisos para acceder a esta información'
+      });
+    }
+
+    let dbToms = [...(await TypeOfMeeting.findAll())];
+    dbToms = dbOrganizations.forEach((org) =>
+      dbToms.filter((tom) => tom.idOrganization === org.id)
+    );
+    let dbMeetings = [...(await Meeting.findAll())];
+    dbMeetings = dbToms.forEach((tom) =>
+      dbMeetings.filter((meet) => meet.idTypeOfMeeting === tom.id)
+    );
+    let dbAgreements = [
+      ...(await Agreement.findAll({
+        include: [
+          { model: User, as: 'responsible' },
+          { model: Response },
+          { model: Meeting }
+        ]
+      }))
+    ];
+    dbAgreements = dbMeetings.forEach((meet) =>
+      dbAgreements.filter((agr) => agr.idMeeting === meet.id)
+    );
+    const agreements = dbAgreements.map((a) => ({
+      id: a.id,
+      number: a.number,
+      content: a.content,
+      compilanceDate: getDateFromDb(a.compilanceDate),
+      completed: a.completed,
+      state: a.state,
+      responsible: {
+        id: a.responsible.id,
+        name: a.responsible.name
+      },
+      meeting: {
+        id: a.meeting.id,
+        name: a.meeting.name
+      },
+      responses: a.responses.map((r) => ({
+        id: r.id,
+        content: r.content
+      }))
+    }));
+
+    return res.json({
+      ok: true,
+      data: agreements
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al listar los Acuerdos'
+    });
+  }
+};
+
 export const getById = async (req = request, res = response) => {
   const { id } = req.params;
   const idUser = req.user.id;

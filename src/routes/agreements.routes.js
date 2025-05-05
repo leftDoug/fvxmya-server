@@ -6,6 +6,7 @@ import {
   create,
   getAll,
   getAllFrom,
+  getAllFromLeader,
   getAllFromUser,
   getById,
   update
@@ -19,6 +20,7 @@ const router = Router();
 router.get('/', getAll);
 router.use(authenticateToken);
 router.get('/meeting/:id', isLeader, findByPk, getAllFrom);
+router.get('/leader', getAllFromLeader);
 router.get('/responsible', getAllFromUser);
 router.get('/:id', findByPk, getById);
 router.post('/', create);

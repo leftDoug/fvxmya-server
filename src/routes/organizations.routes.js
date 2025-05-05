@@ -16,7 +16,7 @@ const router = Router();
 // TODO eliminar
 router.get('/', getAll);
 router.use(authenticateToken, isLeader);
-router.get('/leader/:id', findByPk, getAllFrom);
+router.get('/leader', getAllFrom);
 router.get('/:id', findByPk, getById);
 router.post('/', create);
 router.patch('/:id', findByPk, update);

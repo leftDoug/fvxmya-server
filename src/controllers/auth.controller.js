@@ -56,7 +56,18 @@ export const login = async (req = request, res = response) => {
       dbUser.role
     );
 
-    await Token.create({ idUser: dbUser.id, refreshToken }, { transaction });
+    const dbToken = await Token.findOne({
+      where: { idUser: dbUser.id },
+      include: User,
+      transaction
+    });
+
+    if (dbToken) {
+      await dbToken.update({ refreshToken }, { transaction });
+    } else {
+      await Token.create({ idUser: dbUser.id, refreshToken }, { transaction });
+    }
+
     await transaction.commit();
 
     return res.json({
@@ -84,21 +95,29 @@ export const refreshToken = async (req = request, res = response) => {
 
   try {
     if (!refreshToken) {
+      await transaction.commit();
+
       return res.status(401).json({
         ok: false,
         message: 'Refresh token no recibido'
       });
     }
 
-    const isNotExpired = verifyToken(refreshToken, res);
+    const tokenValid = verifyToken(refreshToken);
 
-    if (!isNotExpired) {
+    if (tokenValid.ok === false) {
+      await transaction.commit();
+
       return res.status(401).json({
         ok: false,
-        message: 'Refresh token expirado',
-        expired: true
+        message: tokenValid.message.includes('expirado')
+          ? 'Refresh token expirado'
+          : tokenValid.message
+        // expired: tokenValid.message.includes('expirado')
       });
     }
+
+    console.log(picocolors.blueBright(refreshToken));
 
     const dbToken = await Token.findOne({
       where: { refreshToken },
@@ -106,14 +125,20 @@ export const refreshToken = async (req = request, res = response) => {
       transaction
     });
 
+    console.log(picocolors.green(JSON.stringify(dbToken)));
+
     // console.log(picocolors.bgCyan(JSON.stringify(dbToken)));
 
     if (!dbToken) {
+      await transaction.commit();
+
       return res.status(401).json({
         ok: false,
-        message: 'Refresh token inválido'
+        message: 'Refresh token inválido (no enviado)'
       });
     }
+
+    // await dbToken.destroy({ transaction });
 
     // const dbUser = await User.findByPk(dbToken.idUser, { transaction });
 
@@ -129,6 +154,11 @@ export const refreshToken = async (req = request, res = response) => {
       { refreshToken: tokens.refreshToken },
       { transaction }
     );
+
+    // await Token.create(
+    //   { idUser: dbToken.user.id, refreshToken: tokens.refreshToken },
+    //   { transaction }
+    // );
 
     await transaction.commit();
 
@@ -277,11 +307,6 @@ export const logout = async (req = request, res = response) => {
   }
 
   try {
-    // if (token) {
-    //   console.log(picocolors.magenta(token));
-    //   revokeToken(token);
-    // }
-
     if (refreshToken) {
       await Token.destroy({ where: { refreshToken }, transaction });
     }

@@ -5,6 +5,7 @@ import {
   getAll,
   getAllFrom,
   getById,
+  getFromTomAndYear,
   remove,
   update
 } from '../controllers/agenda.controller.js';
@@ -17,6 +18,7 @@ const router = Router();
 router.get('/', getAll);
 router.use(authenticateToken, isLeader);
 router.get('/type-meeting/:id', findByPk, getAllFrom);
+router.get('/type-meeting-and-year/:id', findByPk, getFromTomAndYear);
 router.get('/:id', findByPk, getById);
 router.post('/', create);
 router.patch('/:id', findByPk, update);

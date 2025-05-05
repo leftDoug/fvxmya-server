@@ -13,8 +13,8 @@ const router = Router();
 // router.use(authenticateToken);
 
 router.post('/login', login);
-router.post('/refresh-token', refreshToken);
-router.post('/logout', logout);
+router.post('/refresh', refreshToken);
+router.post('/logout', authenticateToken, logout);
 router.post('/change-password', authenticateToken, changePassword);
 
 export default router;

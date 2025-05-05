@@ -1,4 +1,3 @@
-import { response } from 'express';
 import jwt from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.SECRET_JWT || 'p455w0rd';
@@ -56,31 +55,67 @@ export const revokeToken = (token) => {
   revokedTokens.add(token);
 };
 
-export const verifyToken = (token, res = response) => {
+export const verifyToken = (token) => {
   if (revokedTokens.has(token)) {
-    return res.status(401).json({
+    return {
       ok: false,
       message: 'Token revocado'
-    });
+    };
   }
 
   try {
     const decodedToken = jwt.verify(token, SECRET_KEY);
 
     if (new Date() > new Date(decodedToken.exp * 1000)) {
-      return false;
+      return {
+        ok: false,
+        message: 'Token expirado'
+      };
     }
 
-    return true;
+    return { ok: true };
   } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return {
+        ok: false,
+        message: 'Token expirado'
+      };
+    }
+
     console.log(err);
 
-    return res.status(401).json({
+    return {
       ok: false,
-      message: 'Token inválido (verify)'
-    });
+      message: 'Token inválido'
+    };
   }
 };
+
+// export const verifyToken = (token, res = response) => {
+//   if (revokedTokens.has(token)) {
+//     return res.status(401).json({
+//       ok: false,
+//       message: 'Token revocado'
+//     });
+//   }
+
+//   try {
+//     const decodedToken = jwt.verify(token, SECRET_KEY);
+
+//     if (new Date() > new Date(decodedToken.exp * 1000)) {
+//       return false;
+//     }
+
+//     return true;
+//   } catch (err) {
+//     console.log(err);
+
+//     return res.status(401).json({
+//       ok: false,
+//       message: 'Token inválido'
+//     });
+//   }
+// };
 
 // export const decodeToken = (token) => {
 //   return jwt.decode(token);

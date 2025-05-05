@@ -48,7 +48,7 @@ async function dbConnection() {
     await sequelize.authenticate();
     // await MeetingWorker.sync({ alter: true });
     // await Token.sync({ force: true });
-    // await sequelize.sync({ force: true });
+    // await sequelize.sync();
     // await Bar.sync({ force: true });
     // await Foo.sync({ force: true });
     // await Agreement.sync({ force: true });

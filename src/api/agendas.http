@@ -1,17 +1,11 @@
 ### getAll
 GET http://localhost:4000/api/agendas HTTP/1.1
 
+### getAllFromTypeOfMeeting
+GET http://localhost:4000/api/agendas/type-meeting/1 HTTP/1.1
+
 ### getById
 GET http://localhost:4000/api/agendas/1 HTTP/1.1
-
-### getInfo
-GET http://localhost:4000/api/agendas/info/55 HTTP/1.1
-
-### getTopicsFrom
-GET http://localhost:4000/api/agendas/topics/1?year=2038 HTTP/1.1
-
-### getTopics
-GET http://localhost:4000/api/agendas/1/topics HTTP/1.1
 
 ### create
 POST http://localhost:4000/api/agendas HTTP/1.1

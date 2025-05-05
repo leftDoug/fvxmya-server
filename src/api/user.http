@@ -1,14 +1,11 @@
 ### getAll
 GET http://localhost:4000/api/users HTTP/1.1
 
-### getById
-GET http://localhost:4000/api/users/af8e9500-22fe-11f0-a993-8dfcc710da90 HTTP/1.1
-
-### getInfo
-GET http://localhost:4000/api/users/info/af8e9500-22fe-11f0-a993-8dfcc710da90 HTTP/1.1
-
 ### getAllWorkers
 GET http://localhost:4000/api/users/workers HTTP/1.1
+
+### getById
+GET http://localhost:4000/api/users/af8e9500-22fe-11f0-a993-8dfcc710da90 HTTP/1.1
 
 ### update
 PATCH http://localhost:4000/api/users/af8e9500-22fe-11f0-a993-8dfcc710da90 HTTP/1.1
@@ -18,7 +15,7 @@ Content-Type: application/json
   "name": "Camilo Peláez González",
   "occupation": "Técnico en Informática",
   "area": "Departamento Informática",
-  "role": "TRABAJADOR"
+  "role": "ADMINISTRADOR"
 }
 
 ### lock
