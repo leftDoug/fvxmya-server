@@ -5,6 +5,7 @@ import { getDateFromDb } from '../helpers/utils.js';
 import { Agreement } from '../models/Agreement.js';
 import { Meeting } from '../models/Meeting.js';
 import { Response } from '../models/Response.js';
+import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
 import { User } from '../models/User.js';
 
 export const getAll = async (req = request, res = response) => {
@@ -47,9 +48,22 @@ export const create = async (req = request, res = response) => {
       ],
       transaction
     });
+    const dbMeeting = await Meeting.findByPk(dbAgreement.idMeeting, {
+      transaction
+    });
+    const dbTypeOfMeeting = await TypeOfMeeting.findByPk(
+      dbMeeting.idTypeOfMeeting,
+      { transaction }
+    );
+    const dbOrganization = await dbTypeOfMeeting.getOrganization({
+      transaction
+    });
 
-    if (idUser !== dbAgreement.idResponsible) {
-      await transaction.commit();
+    if (
+      idUser !== dbAgreement.idResponsible &&
+      idUser !== dbOrganization.idLeader
+    ) {
+      await transaction.rollback();
 
       return res.status(403).json({
         ok: false,

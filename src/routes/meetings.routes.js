@@ -8,6 +8,7 @@ import {
   getAllFromTom,
   getById,
   open,
+  remove,
   setAttendance,
   update
 } from '../controllers/meeting.controller.js';
@@ -27,5 +28,6 @@ router.patch('/attendance/:id', findByPk, setAttendance);
 router.patch('/open/:id', findByPk, open);
 router.patch('/close/:id', findByPk, close);
 router.patch('/:id', findByPk, update);
+router.delete('/:id', findByPk, remove);
 
 export default router;

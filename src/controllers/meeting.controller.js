@@ -14,6 +14,7 @@ import {
   setDateToDb,
   setTimeToDb
 } from '../helpers/utils.js';
+import { Agreement } from '../models/Agreement.js';
 import { MeetingTopic } from '../models/MeetingTopic.js';
 import { MeetingWorker } from '../models/MeetingWorker.js';
 import { Organization } from '../models/Organization.js';
@@ -932,3 +933,38 @@ export const close = async (req = request, res = response) => {
 };
 
 // TODO falta hacer el remove
+export const remove = async (req = request, res = response) => {
+  const { id } = req.params;
+  const transaction = await sequelize.transaction();
+
+  try {
+    await Agreement.update(
+      { state: false },
+      {
+        where: { idMeeting: parseInt(id) },
+        transaction
+      }
+    );
+
+    await Meeting.destroy({
+      where: { id },
+      transaction
+    });
+
+    await transaction.commit();
+
+    return res.json({
+      ok: true,
+      message: 'Reunión eliminada'
+    });
+  } catch (err) {
+    console.error(err);
+
+    await transaction.rollback();
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al eliminar la Reunión'
+    });
+  }
+};

@@ -306,12 +306,18 @@ export const remove = async (req = request, res = response) => {
   try {
     await Organization.destroy({ where: { id }, transaction });
     await transaction.commit();
+
     return res.json({
+      ok: true,
       message: 'Organización eliminada'
     });
   } catch (err) {
     console.error(err);
+
+    await transaction.rollback();
+
     return res.status(500).json({
+      ok: false,
       message: 'Error al eliminar la Organización'
     });
   }

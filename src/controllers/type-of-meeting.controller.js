@@ -260,32 +260,53 @@ export const create = async (req = request, res = response) => {
 export const update = async (req = request, res = response) => {
   const { id } = req.params;
   const { name, idOrganization } = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    let dbTom = await TypeOfMeeting.findOne({
-      where: { name, idOrganization: parseInt(idOrganization, 10) }
+    const dbTom = await TypeOfMeeting.findByPk(parseInt(id), {
+      include: Organization,
+      transaction
+    });
+    const dbTomFound = await TypeOfMeeting.findOne({
+      where: { name, idOrganization: parseInt(idOrganization, 10) },
+      include: Organization,
+      transaction
     });
 
-    if (dbTom) {
+    if (dbTomFound && dbTomFound.id !== parseInt(id)) {
+      await transaction.rollback();
+
       return res.status(400).json({
+        ok: false,
         message: 'Ya existe este Tipo de Reunión para esta Organización'
       });
     }
 
-    await TypeOfMeeting.update({ name }, { where: { id: parseInt(id, 10) } });
-    dbTom = await TypeOfMeeting.findByPk(parseInt(id, 10));
+    await dbTom.update({ name }, { transaction });
+
     const tom = {
       id: dbTom.id,
-      name: dbTom.name,
-      idOrganization: dbTom.idOrganization
+      name: name,
+      organization: {
+        id: dbTom.organization.id,
+        name: dbTom.organization.name
+      }
     };
+
+    await transaction.commit();
+
     return res.json({
+      ok: true,
       message: 'Tipo de Reunión actualizado',
       data: tom
     });
   } catch (err) {
     console.error(err);
+
+    await transaction.rollback();
+
     return res.status(500).json({
+      ok: false,
       message: 'Error al actualizar el Tipo de Reunión'
     });
   }
@@ -293,20 +314,27 @@ export const update = async (req = request, res = response) => {
 
 export const remove = async (req = request, res = response) => {
   const { id } = req.params;
+  const transaction = await sequelize.transaction();
 
   try {
-    const dbTom = await TypeOfMeeting.findByPk(parseInt(id, 10));
-    const name = `(removed) ${dbTom.name}`;
-    await dbTom.update(
-      { name, state: false },
-      { where: { id: parseInt(id, 10) } }
-    );
+    await TypeOfMeeting.destroy({
+      where: { id: parseInt(id) },
+      transaction
+    });
+
+    await transaction.commit();
+
     return res.json({
+      ok: true,
       message: 'Tipo de Reunión eliminado'
     });
   } catch (err) {
     console.log(err);
+
+    await transaction.rollback();
+
     return res.status(500).json({
+      ok: false,
       message: 'Error al eliminar el Tipo de Reunión'
     });
   }

@@ -2,12 +2,7 @@ import bcrypt from 'bcryptjs';
 import { request, response } from 'express';
 
 import { sequelize } from '../db/config.js';
-import {
-  generateJWT,
-  generateTokens,
-  revokeToken,
-  verifyToken
-} from '../helpers/jwt.js';
+import { generateTokens, revokeToken, verifyToken } from '../helpers/jwt.js';
 
 import picocolors from 'picocolors';
 import { Token } from '../models/Token.js';
@@ -181,21 +176,6 @@ export const refreshToken = async (req = request, res = response) => {
   }
 };
 
-export const tokenRenewal = async (req = request, res = response) => {
-  const { id, username } = req;
-
-  const token = await generateJWT(id, username);
-
-  const dbUser = await User.findByPk(id);
-
-  return res.json({
-    ok: true,
-    id,
-    idWorker: dbUser.idWorker,
-    token
-  });
-};
-
 export const setLock = async (req = request, res = response) => {
   const { id } = req.params;
   const transaction = await sequelize.transaction();
@@ -267,13 +247,17 @@ export const changePassword = async (req = request, res = response) => {
       },
       { transaction }
     );
-    await Token.destroy({ where: { idUser: dbUser.id }, transaction });
+    // await Token.destroy({ where: { idUser: dbUser.id }, transaction });
 
     const { authToken, refreshToken } = generateTokens(
       dbUser.id,
       dbUser.username,
       dbUser.role
     );
+
+    console.log('NUEVA:', picocolors.yellow(refreshToken));
+
+    await Token.update({ refreshToken }, { where: { idUser }, transaction });
 
     await transaction.commit();
 
