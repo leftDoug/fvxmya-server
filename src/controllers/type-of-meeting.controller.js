@@ -47,23 +47,30 @@ export const getAllFromLeader = async (req = request, res = response) => {
 
     let dbToms = await TypeOfMeeting.findAll({ include: Organization });
 
-    if (dbOrganizations.length > 1) {
-      dbToms = dbOrganizations.forEach((org) => {
-        if (dbToms.length > 1) {
-          return dbToms.filter((tom) => tom.idOrganization === org.id);
-        } else {
-          return dbToms[0].idOrganization === org.id ? dbToms : undefined;
-        }
+    if (dbToms.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
       });
-    } else if (dbToms.length > 1) {
-      dbToms = dbToms.filter(
-        (tom) => tom.idOrganization === dbOrganizations[0].id
-      );
+    }
+
+    if (dbToms.length > 1) {
+      dbToms = dbToms.filter((tom) => {
+        if (dbOrganizations.length > 1) {
+          return dbOrganizations.some((org) => org.id === tom.idOrganization);
+        }
+
+        return tom.idOrganization === dbOrganizations[0].id;
+      });
+    } else if (dbOrganizations.length > 1) {
+      dbToms = dbOrganizations.some(
+        (org) => org.id === dbToms[0].idOrganization
+      )
+        ? dbToms[0]
+        : [];
     } else {
       dbToms =
-        dbToms[0].idOrganization === dbOrganizations[0].id
-          ? dbToms[0]
-          : undefined;
+        dbToms[0].idOrganization === dbOrganizations[0].id ? dbToms[0] : [];
     }
 
     if (!dbToms || dbToms.length === 0) {

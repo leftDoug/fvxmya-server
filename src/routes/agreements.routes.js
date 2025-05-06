@@ -5,8 +5,8 @@ import {
   complete,
   create,
   getAll,
-  getAllFrom,
   getAllFromLeader,
+  getAllFromMeeting,
   getAllFromUser,
   getById,
   update
@@ -19,7 +19,7 @@ const router = Router();
 // TODO eliminar
 router.get('/', getAll);
 router.use(authenticateToken);
-router.get('/meeting/:id', isLeader, findByPk, getAllFrom);
+router.get('/meeting/:id', isLeader, findByPk, getAllFromMeeting);
 router.get('/leader', getAllFromLeader);
 router.get('/responsible', getAllFromUser);
 router.get('/:id', findByPk, getById);

@@ -55,7 +55,7 @@ export const getAll = async (req = request, res = response) => {
   }
 };
 
-export const getAllFrom = async (req = request, res = response) => {
+export const getAllFromMeeting = async (req = request, res = response) => {
   const { id } = req.params;
   const idUser = req.user.id;
 
@@ -198,7 +198,75 @@ export const getAllFromLeader = async (req = request, res = response) => {
     }
 
     let dbToms = await TypeOfMeeting.findAll();
+
+    if (dbToms.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    if (dbToms.length > 1) {
+      dbToms = dbToms.filter((tom) => {
+        if (dbOrganizations.length > 1) {
+          return dbOrganizations.some((org) => org.id === tom.idOrganization);
+        }
+
+        return tom.idOrganization === dbOrganizations[0].id;
+      });
+    } else if (dbOrganizations.length > 1) {
+      dbToms = dbOrganizations.some(
+        (org) => org.id === dbToms[0].idOrganization
+      )
+        ? dbToms[0]
+        : [];
+    } else {
+      dbToms =
+        dbToms[0].idOrganization === dbOrganizations[0].id ? dbToms[0] : [];
+    }
+
+    if (dbToms.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
     let dbMeetings = await Meeting.findAll();
+
+    if (dbMeetings.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    if (dbMeetings.length > 1) {
+      dbMeetings = dbMeetings.filter((meet) => {
+        if (dbToms.length > 1) {
+          return dbToms.some((tom) => tom.id === meet.idTypeOfMeeting);
+        }
+
+        return meet.idTypeOfMeeting === dbToms[0].id;
+      });
+    } else if (dbToms.length > 1) {
+      dbMeetings = dbToms.some(
+        (tom) => tom.id === dbMeetings[0].idTypeOfMeeting
+      )
+        ? dbMeetings[0]
+        : [];
+    } else {
+      dbMeetings =
+        dbMeetings[0].idTypeOfMeeting === dbToms[0].id ? dbMeetings[0] : [];
+    }
+
+    if (dbMeetings.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
     let dbAgreements = await Agreement.findAll({
       include: [
         { model: User, as: 'responsible' },
@@ -207,84 +275,36 @@ export const getAllFromLeader = async (req = request, res = response) => {
       ]
     });
 
-    if (dbOrganizations.length > 1) {
-      dbToms = dbOrganizations.forEach((org) => {
-        if (dbToms.length > 1) {
-          return dbToms.filter((tom) => tom.idOrganization === org.id);
-        } else {
-          return dbToms[0].idOrganization === org.id ? dbToms : undefined;
-        }
-      });
-    } else if (dbToms.length > 1) {
-      dbToms = dbToms.filter(
-        (tom) => tom.idOrganization === dbOrganizations[0].id
-      );
-    } else {
-      dbToms =
-        dbToms[0].idOrganization === dbOrganizations[0].id
-          ? dbToms[0]
-          : undefined;
-    }
-
-    if (!dbToms) {
+    if (dbAgreements.length === 0) {
       return res.json({
         ok: true,
         data: []
       });
     }
 
-    if (dbToms.length > 1) {
-      dbMeetings = dbToms.forEach((tom) => {
+    if (dbAgreements.length > 1) {
+      dbAgreements = dbAgreements.filter((agr) => {
         if (dbMeetings.length > 1) {
-          return dbMeetings.filter((meet) => meet.idTypeOfMeeting === tom.id);
-        } else {
-          return dbMeetings[0].idTypeOfMeeting === tom.id
-            ? dbMeetings[0]
-            : undefined;
+          return dbMeetings.some((meet) => meet.id === agr.idMeeting);
         }
+
+        return agr.idMeeting === dbMeetings[0].id;
       });
     } else if (dbMeetings.length > 1) {
-      dbMeetings = dbMeetings.filter(
-        (meet) => meet.idTypeOfMeeting === dbToms[0].id
-      );
-    } else {
-      dbMeetings =
-        dbMeetings[0].idTypeOfMeeting === dbToms[0].id
-          ? dbMeetings[0]
-          : undefined;
-    }
-
-    if (!dbMeetings) {
-      return res.json({
-        ok: true,
-        data: []
-      });
-    }
-
-    if (dbMeetings.length > 1) {
-      dbAgreements = dbMeetings.forEach((meet) => {
-        if (dbAgreements.length > 1) {
-          return dbAgreements.filter((agr) => agr.idMeeting === meet.id);
-        } else {
-          return dbAgreements[0].idMeeting === meet.id
-            ? dbAgreements[0]
-            : undefined;
-        }
-      });
-    } else if (dbAgreements.length > 1) {
-      dbAgreements = dbAgreements.filter(
-        (agr) => agr.idMeeting === dbMeetings[0].id
-      );
+      dbAgreements = dbMeetings.some(
+        (meet) => meet.id === dbAgreements[0].idMeeting
+      )
+        ? dbAgreements[0]
+        : [];
     } else {
       dbAgreements =
-        dbAgreements[0].idMeeting === dbMeetings[0].id
-          ? dbAgreements[0]
-          : undefined;
+        dbAgreements[0].idMeeting === dbMeetings[0].id ? dbAgreements[0] : [];
     }
+
     console.log(picocolors.greenBright(JSON.stringify(dbAgreements)));
     // console.log(picocolors.greenBright(dbMeetings.length));
 
-    if (!dbAgreements || dbAgreements.length === 0) {
+    if (dbAgreements.length === 0) {
       return res.json({
         ok: true,
         data: []
@@ -342,7 +362,7 @@ export const getAllFromLeader = async (req = request, res = response) => {
 
     return res.json({
       ok: true,
-      data: agreement
+      data: [agreement]
     });
   } catch (err) {
     console.error(err);
