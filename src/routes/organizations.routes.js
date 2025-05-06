@@ -3,7 +3,7 @@ import { Router } from 'express';
 import {
   create,
   getAll,
-  getAllFrom,
+  getAllFromLeader,
   getById,
   remove,
   update
@@ -16,7 +16,7 @@ const router = Router();
 // TODO eliminar
 router.get('/', getAll);
 router.use(authenticateToken, isLeader);
-router.get('/leader', getAllFrom);
+router.get('/leader', getAllFromLeader);
 router.get('/:id', findByPk, getById);
 router.post('/', create);
 router.patch('/:id', findByPk, update);

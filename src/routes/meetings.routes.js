@@ -4,7 +4,8 @@ import {
   close,
   create,
   getAll,
-  getAllFrom,
+  getAllFromLeader,
+  getAllFromTom,
   getById,
   open,
   setAttendance,
@@ -18,7 +19,8 @@ const router = Router();
 // TODO eliminar
 router.get('/', getAll);
 router.use(authenticateToken, isLeader);
-router.get('/type-meeting/:id', findByPk, getAllFrom);
+router.get('/type-meeting/:id', findByPk, getAllFromTom);
+router.get('/leader', getAllFromLeader);
 router.get('/:id', findByPk, getById);
 router.post('/', create);
 router.patch('/attendance/:id', findByPk, setAttendance);

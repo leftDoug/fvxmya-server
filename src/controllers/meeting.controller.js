@@ -6,6 +6,7 @@ import { TypeOfMeeting } from '../models/TypeOfMeeting.js';
 import { Sequelize } from 'sequelize';
 // import { WorkerArea } from '../models/WorkerArea.js';
 // import { WorkerMeeting } from '../models/WorkerMeeting.js';
+import picocolors from 'picocolors';
 import { sequelize } from '../db/config.js';
 import {
   getDateFromDb,
@@ -113,7 +114,208 @@ export const getAll = async (req = request, res = response) => {
   }
 };
 
-export const getAllFrom = async (req = request, res = response) => {
+export const getAllFromLeader = async (req = request, res = response) => {
+  const idUser = req.user.id;
+
+  try {
+    const dbOrganizations = await Organization.findAll({
+      where: { idLeader: idUser }
+    });
+
+    if (dbOrganizations.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    let dbToms = await TypeOfMeeting.findAll();
+
+    if (dbToms.length > 1) {
+      dbToms = dbToms.filter((tom) => {
+        if (dbOrganizations.length > 1) {
+          return dbOrganizations.some((org) => org.id === tom.idOrganization);
+        }
+
+        return tom.idOrganization === dbOrganizations[0].id;
+      });
+    } else if (dbOrganizations.length > 1) {
+      dbToms = dbOrganizations.some(
+        (org) => org.id === dbToms[0].idOrganization
+      )
+        ? dbToms[0]
+        : [];
+    } else {
+      dbToms =
+        dbToms[0].idOrganization === dbOrganizations[0].id ? dbToms[0] : [];
+    }
+
+    // if (dbOrganizations.length > 1) {
+    //   dbToms = dbOrganizations.forEach((org) => {
+    //     if (dbToms.length > 1) {
+    //       return dbToms.filter((tom) => tom.idOrganization === org.id);
+    //     } else {
+    //       return dbToms[0].idOrganization === org.id ? dbToms : undefined;
+    //     }
+    //   });
+    // } else if (dbToms.length > 1) {
+    //   dbToms = dbToms.filter(
+    //     (tom) => tom.idOrganization === dbOrganizations[0].id
+    //   );
+    // } else {
+    //   dbToms =
+    //     dbToms[0].idOrganization === dbOrganizations[0].id
+    //       ? dbToms[0]
+    //       : undefined;
+    // }
+
+    if (dbToms.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    let dbMeetings = await Meeting.findAll({
+      include: [
+        { model: User, as: 'secretary' },
+        { model: User, as: 'participants' },
+        { model: TypeOfMeeting, as: 'typeOfMeeting' },
+        { model: Topic }
+      ]
+    });
+
+    if (dbMeetings.length > 1) {
+      dbMeetings = dbMeetings.filter((meet) => {
+        if (dbToms.length > 1) {
+          return dbToms.some((tom) => tom.id === meet.idTypeOfMeeting);
+        }
+
+        return meet.idTypeOfMeeting === dbToms[0].id;
+      });
+    } else if (dbToms.length > 1) {
+      dbMeetings = dbToms.some(
+        (tom) => tom.id === dbMeetings[0].idTypeOfMeeting
+      )
+        ? dbMeetings[0]
+        : [];
+    } else {
+      dbMeetings =
+        dbMeetings[0].idTypeOfMeeting === dbToms[0].id ? dbMeetings[0] : [];
+    }
+    console.log(picocolors.greenBright(JSON.stringify(dbMeetings)));
+    // console.log(picocolors.greenBright(dbMeetings.length));
+
+    // if (dbToms.length > 1) {
+    //   dbMeetings = dbToms.forEach((tom) => {
+    //     if (dbMeetings.length > 1) {
+    //       return dbMeetings.filter((meet) => meet.idTypeOfMeeting === tom.id);
+    //     } else {
+    //       return dbMeetings[0].idTypeOfMeeting === tom.id
+    //         ? dbMeetings[0]
+    //         : undefined;
+    //     }
+    //   });
+    // } else if (dbMeetings.length > 1) {
+    //   dbMeetings = dbMeetings.filter(
+    //     (meet) => meet.idTypeOfMeeting === dbToms[0].id
+    //   );
+    // } else {
+    //   dbMeetings =
+    //     dbMeetings[0].idTypeOfMeeting === dbToms[0].id
+    //       ? dbMeetings[0]
+    //       : undefined;
+    // }
+
+    if (dbMeetings.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    if (dbMeetings.length > 1) {
+      const meetings = dbMeetings.map((m) => ({
+        id: m.id,
+        name: m.name,
+        session: m.session,
+        date: getDateFromDb(m.date),
+        startTime: getTimeFromDb(m.date, m.startTime),
+        endTime: getTimeFromDb(m.date, m.endTime),
+        status: m.status,
+        typeOfMeeting: {
+          id: m.typeOfMeeting.id,
+          name: m.typeOfMeeting.name
+        },
+        secretary: {
+          id: m.secretary.id,
+          name: m.secretary.name,
+          occupation: m.secretary.occupation
+        },
+        participants: m.participants.map((p) => ({
+          id: p.id,
+          name: p.name,
+          occupation: p.occupation,
+          member: p.meetingsWorkers.member,
+          status: p.meetingsWorkers.status
+        })),
+        topics: m.topics.map((t) => ({
+          id: t.id,
+          name: t.name
+        }))
+      }));
+
+      return res.json({
+        ok: true,
+        data: meetings
+      });
+    }
+
+    const meeting = {
+      id: dbMeetings[0].id,
+      name: dbMeetings[0].name,
+      session: dbMeetings[0].session,
+      date: getDateFromDb(dbMeetings[0].date),
+      startTime: getTimeFromDb(dbMeetings[0].date, dbMeetings[0].startTime),
+      endTime: getTimeFromDb(dbMeetings[0].date, dbMeetings[0].endTime),
+      status: dbMeetings[0].status,
+      typeOfMeeting: {
+        id: dbMeetings[0].typeOfMeeting.id,
+        name: dbMeetings[0].typeOfMeeting.name
+      },
+      secretary: {
+        id: dbMeetings[0].secretary.id,
+        name: dbMeetings[0].secretary.name,
+        occupation: dbMeetings[0].secretary.occupation
+      },
+      participants: dbMeetings[0].participants.map((p) => ({
+        id: p.id,
+        name: p.name,
+        occupation: p.occupation,
+        member: p.meetingsWorkers.member,
+        status: p.meetingsWorkers.status
+      })),
+      topics: dbMeetings[0].topics.map((t) => ({
+        id: t.id,
+        name: t.name
+      }))
+    };
+
+    return res.json({
+      ok: true,
+      data: [meeting]
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al listar las Reuniones'
+    });
+  }
+};
+
+export const getAllFromTom = async (req = request, res = response) => {
   const { id } = req.params;
   const idUser = req.user.id;
 

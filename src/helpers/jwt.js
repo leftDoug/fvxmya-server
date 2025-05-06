@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.SECRET_JWT || 'p455w0rd';
-const AUTH_TOKEN_EXPIRITY = '1min';
+const AUTH_TOKEN_EXPIRITY = '30min';
 const REFRESH_TOKEN_EXPIRITY = '12h';
 const revokedTokens = new Set();
 
@@ -86,7 +86,7 @@ export const verifyToken = (token) => {
 
     return {
       ok: false,
-      message: 'Token inválido'
+      message: 'Token inválido (jwt)'
     };
   }
 };

@@ -79,10 +79,12 @@ export const findByPk = async (req = request, res = response, next) => {
               where: { idTypeOfMeeting: parseInt(id) }
             });
           } else if (model2 === 'type-meeting-and-year') {
-            const { year } = req.params;
-            found = await Agenda.findAll({
-              where: { idTypeOfMeeting: parseInt(id), year }
-            });
+            const { year } = req.query;
+            if (!isNaN(year)) {
+              found = await Agenda.findOne({
+                where: { idTypeOfMeeting: parseInt(id), year: parseInt(year) }
+              });
+            }
           } else {
             found = await Agenda.findByPk(parseInt(id));
           }

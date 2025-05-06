@@ -3,6 +3,7 @@ import { request, response } from 'express';
 import { sequelize } from '../db/config.js';
 import { getDateFromDb, setDateToDb } from '../helpers/utils.js';
 
+import picocolors from 'picocolors';
 import { Agreement } from '../models/Agreement.js';
 import { Meeting } from '../models/Meeting.js';
 import { Organization } from '../models/Organization.js';
@@ -185,61 +186,163 @@ export const getAllFromLeader = async (req = request, res = response) => {
   const idUser = req.user.id;
 
   try {
-    const dbOrganizations = [
-      ...(await Organization.findAll({ where: { idLeader: idUser } }))
-    ];
+    const dbOrganizations = await Organization.findAll({
+      where: { idLeader: idUser }
+    });
 
-    if (dbOrganizations.length > 0 && dbOrganizations[0].idLeader !== idUser) {
-      return res.status(403).json({
-        ok: false,
-        message: 'Se requiren permisos para acceder a esta información'
+    if (dbOrganizations.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
       });
     }
 
-    let dbToms = [...(await TypeOfMeeting.findAll())];
-    dbToms = dbOrganizations.forEach((org) =>
-      dbToms.filter((tom) => tom.idOrganization === org.id)
-    );
-    let dbMeetings = [...(await Meeting.findAll())];
-    dbMeetings = dbToms.forEach((tom) =>
-      dbMeetings.filter((meet) => meet.idTypeOfMeeting === tom.id)
-    );
-    let dbAgreements = [
-      ...(await Agreement.findAll({
-        include: [
-          { model: User, as: 'responsible' },
-          { model: Response },
-          { model: Meeting }
-        ]
-      }))
-    ];
-    dbAgreements = dbMeetings.forEach((meet) =>
-      dbAgreements.filter((agr) => agr.idMeeting === meet.id)
-    );
-    const agreements = dbAgreements.map((a) => ({
-      id: a.id,
-      number: a.number,
-      content: a.content,
-      compilanceDate: getDateFromDb(a.compilanceDate),
-      completed: a.completed,
-      state: a.state,
+    let dbToms = await TypeOfMeeting.findAll();
+    let dbMeetings = await Meeting.findAll();
+    let dbAgreements = await Agreement.findAll({
+      include: [
+        { model: User, as: 'responsible' },
+        { model: Response },
+        { model: Meeting }
+      ]
+    });
+
+    if (dbOrganizations.length > 1) {
+      dbToms = dbOrganizations.forEach((org) => {
+        if (dbToms.length > 1) {
+          return dbToms.filter((tom) => tom.idOrganization === org.id);
+        } else {
+          return dbToms[0].idOrganization === org.id ? dbToms : undefined;
+        }
+      });
+    } else if (dbToms.length > 1) {
+      dbToms = dbToms.filter(
+        (tom) => tom.idOrganization === dbOrganizations[0].id
+      );
+    } else {
+      dbToms =
+        dbToms[0].idOrganization === dbOrganizations[0].id
+          ? dbToms[0]
+          : undefined;
+    }
+
+    if (!dbToms) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    if (dbToms.length > 1) {
+      dbMeetings = dbToms.forEach((tom) => {
+        if (dbMeetings.length > 1) {
+          return dbMeetings.filter((meet) => meet.idTypeOfMeeting === tom.id);
+        } else {
+          return dbMeetings[0].idTypeOfMeeting === tom.id
+            ? dbMeetings[0]
+            : undefined;
+        }
+      });
+    } else if (dbMeetings.length > 1) {
+      dbMeetings = dbMeetings.filter(
+        (meet) => meet.idTypeOfMeeting === dbToms[0].id
+      );
+    } else {
+      dbMeetings =
+        dbMeetings[0].idTypeOfMeeting === dbToms[0].id
+          ? dbMeetings[0]
+          : undefined;
+    }
+
+    if (!dbMeetings) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    if (dbMeetings.length > 1) {
+      dbAgreements = dbMeetings.forEach((meet) => {
+        if (dbAgreements.length > 1) {
+          return dbAgreements.filter((agr) => agr.idMeeting === meet.id);
+        } else {
+          return dbAgreements[0].idMeeting === meet.id
+            ? dbAgreements[0]
+            : undefined;
+        }
+      });
+    } else if (dbAgreements.length > 1) {
+      dbAgreements = dbAgreements.filter(
+        (agr) => agr.idMeeting === dbMeetings[0].id
+      );
+    } else {
+      dbAgreements =
+        dbAgreements[0].idMeeting === dbMeetings[0].id
+          ? dbAgreements[0]
+          : undefined;
+    }
+    console.log(picocolors.greenBright(JSON.stringify(dbAgreements)));
+    // console.log(picocolors.greenBright(dbMeetings.length));
+
+    if (!dbAgreements || dbAgreements.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
+    if (dbAgreements.length > 1) {
+      const agreements = dbAgreements.map((a) => ({
+        id: a.id,
+        number: a.number,
+        content: a.content,
+        compilanceDate: getDateFromDb(a.compilanceDate),
+        completed: a.completed,
+        state: a.state,
+        responsible: {
+          id: a.responsible.id,
+          name: a.responsible.name
+        },
+        meeting: {
+          id: a.meeting.id,
+          name: a.meeting.name
+        },
+        responses: a.responses.map((r) => ({
+          id: r.id,
+          content: r.content
+        }))
+      }));
+
+      return res.json({
+        ok: true,
+        data: agreements
+      });
+    }
+
+    const agreement = {
+      id: dbAgreements[0].id,
+      number: dbAgreements[0].number,
+      content: dbAgreements[0].content,
+      compilanceDate: getDateFromDb(dbAgreements[0].compilanceDate),
+      completed: dbAgreements[0].completed,
+      state: dbAgreements[0].state,
       responsible: {
-        id: a.responsible.id,
-        name: a.responsible.name
+        id: dbAgreements[0].responsible.id,
+        name: dbAgreements[0].responsible.name
       },
       meeting: {
-        id: a.meeting.id,
-        name: a.meeting.name
+        id: dbAgreements[0].meeting.id,
+        name: dbAgreements[0].meeting.name
       },
-      responses: a.responses.map((r) => ({
+      responses: dbAgreements[0].responses.map((r) => ({
         id: r.id,
         content: r.content
       }))
-    }));
+    };
 
     return res.json({
       ok: true,
-      data: agreements
+      data: agreement
     });
   } catch (err) {
     console.error(err);

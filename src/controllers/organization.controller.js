@@ -1,6 +1,5 @@
 import { request, response } from 'express';
 
-import picocolors from 'picocolors';
 import { sequelize } from '../db/config.js';
 import { Organization } from '../models/Organization.js';
 import { OrganizationMember } from '../models/OrganizationMember.js';
@@ -43,10 +42,8 @@ export const getAll = async (req = request, res = response) => {
   }
 };
 
-export const getAllFrom = async (req = request, res = response) => {
+export const getAllFromLeader = async (req = request, res = response) => {
   const idUser = req.user.id;
-
-  console.log(picocolors.magenta(idUser));
 
   try {
     const dbOrganizations = await Organization.findAll({
@@ -56,6 +53,14 @@ export const getAllFrom = async (req = request, res = response) => {
         { model: User, as: 'members' }
       ]
     });
+
+    if (dbOrganizations.length === 0) {
+      return res.json({
+        ok: true,
+        data: []
+      });
+    }
+
     const organizations = dbOrganizations.map((organization) => ({
       id: organization.id,
       name: organization.name,

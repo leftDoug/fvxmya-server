@@ -14,7 +14,7 @@ const router = Router();
 
 router.post('/login', login);
 router.post('/refresh', refreshToken);
-router.post('/logout', authenticateToken, logout);
+router.post('/logout', logout);
 router.post('/change-password', authenticateToken, changePassword);
 
 export default router;

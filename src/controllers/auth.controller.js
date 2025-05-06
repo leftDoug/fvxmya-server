@@ -117,15 +117,14 @@ export const refreshToken = async (req = request, res = response) => {
       });
     }
 
-    console.log(picocolors.blueBright(refreshToken));
-
     const dbToken = await Token.findOne({
       where: { refreshToken },
       include: User,
       transaction
     });
 
-    console.log(picocolors.green(JSON.stringify(dbToken)));
+    console.log('ENTRA:', picocolors.blueBright(refreshToken));
+    console.log('ENCUENTRA:', picocolors.bgBlueBright(JSON.stringify(dbToken)));
 
     // console.log(picocolors.bgCyan(JSON.stringify(dbToken)));
 
@@ -149,6 +148,8 @@ export const refreshToken = async (req = request, res = response) => {
       dbToken.user.username,
       dbToken.user.role
     );
+
+    console.log('SALE:', picocolors.blueBright(tokens.refreshToken));
 
     await dbToken.update(
       { refreshToken: tokens.refreshToken },
@@ -296,7 +297,7 @@ export const changePassword = async (req = request, res = response) => {
 
 export const logout = async (req = request, res = response) => {
   const authHeader = req.headers['authorization'];
-  const token = undefined;
+  let token = undefined;
   const { refreshToken } = req.body;
   const transaction = await sequelize.transaction();
 

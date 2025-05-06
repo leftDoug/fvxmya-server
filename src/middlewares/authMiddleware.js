@@ -1,6 +1,5 @@
 import { request, response } from 'express';
 import jwt from 'jsonwebtoken';
-import picocolors from 'picocolors';
 import { User } from '../models/User.js';
 
 const SECRET_KEY = process.env.SECRET_JWT || 'p455w0rd';
@@ -62,7 +61,7 @@ export const authenticateToken = async (
 
     return res.status(401).json({
       ok: false,
-      message: 'Token inválido (auth)'
+      message: 'Token inválido (middleware)'
     });
   }
 };
@@ -71,7 +70,6 @@ export const isAdmin = (req = request, res = response, next) => {
   if (req.user && req.user.role === 'ADMINISTRADOR') {
     next();
   } else {
-    console.log(picocolors.magenta('NO ADMIN'));
     return res.status(403).json({
       ok: false,
       message: 'Se requiren permisos de administrador para esta acción'

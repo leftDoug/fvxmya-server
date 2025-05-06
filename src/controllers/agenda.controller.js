@@ -97,7 +97,7 @@ export const getFromTomAndYear = async (req = request, res = response) => {
   const idUser = req.user.id;
 
   try {
-    const dbTom = await TypeOfMeeting.getById(parseInt(id), {
+    const dbTom = await TypeOfMeeting.findByPk(parseInt(id), {
       include: Organization
     });
 
@@ -109,12 +109,27 @@ export const getFromTomAndYear = async (req = request, res = response) => {
     }
 
     const dbAgenda = await Agenda.findOne({
-      where: { idTypeOfMeeting: parseInt(id), year }
+      where: { idTypeOfMeeting: parseInt(id), year },
+      include: [{ model: TypeOfMeeting, as: 'typeOfMeeting' }, { model: Topic }]
     });
+    const agenda = {
+      id: dbAgenda.id,
+      year: new Date(`01/01/${dbAgenda.year}`),
+      typeOfMeeting: {
+        id: dbAgenda.typeOfMeeting.id,
+        name: dbAgenda.typeOfMeeting.name
+      },
+      topics: dbAgenda.topics.map((t) => ({
+        id: t.id,
+        name: t.name,
+        month: new Date(`${t.month}/01/${dbAgenda.year}`),
+        monthNumber: t.month - 1
+      }))
+    };
 
     return res.json({
       ok: true,
-      data: dbAgenda
+      data: agenda
     });
   } catch (err) {
     console.log(err);
@@ -342,7 +357,7 @@ export const remove = async (req = request, res = response) => {
 
     return res.status(500).json({
       ok: false,
-      msg: 'Error al borrar la Agenda'
+      message: 'Error al borrar la Agenda'
     });
   }
 };
