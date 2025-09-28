@@ -10,22 +10,22 @@ import { User } from '../models/User.js';
 
 export const login = async (req = request, res = response) => {
   const { username, password } = req.body;
-  const transaction = await sequelize.transaction();
+  // const transaction = await sequelize.transaction();
 
   try {
-    const dbUser = await User.findOne({ where: { username }, transaction });
+    const dbUser = await User.findOne({ where: { username } });
 
     if (!dbUser) {
-      await transaction.commit();
+      // await transaction.commit();
 
       return res.status(401).json({
         ok: false,
-        message: 'Credenciales incorrectas'
+        message: 'Credenciales incorrectas (user)'
       });
     }
 
     if (!dbUser.state) {
-      await transaction.commit();
+      // await transaction.commit();
 
       return res.status(401).json({
         ok: false,
@@ -37,11 +37,11 @@ export const login = async (req = request, res = response) => {
     const pwdIsValid = await bcrypt.compare(password, dbUser.password);
 
     if (!pwdIsValid) {
-      await transaction.commit();
+      // await transaction.commit();
 
       return res.status(401).json({
         ok: false,
-        message: 'Credenciales incorrectas'
+        message: 'Credenciales incorrectas (passwd)'
       });
     }
 
@@ -51,19 +51,20 @@ export const login = async (req = request, res = response) => {
       dbUser.role
     );
 
+    console.log(JSON.stringify(dbUser));
+
     const dbToken = await Token.findOne({
-      where: { idUser: dbUser.id },
-      include: User,
-      transaction
+      where: { idUser: dbUser.id }
+      // transaction
     });
 
     if (dbToken) {
-      await dbToken.update({ refreshToken }, { transaction });
+      await dbToken.update({ refreshToken });
     } else {
-      await Token.create({ idUser: dbUser.id, refreshToken }, { transaction });
+      await Token.create({ idUser: dbUser.id, refreshToken });
     }
 
-    await transaction.commit();
+    // await transaction.commit();
 
     return res.json({
       ok: true,
@@ -74,7 +75,7 @@ export const login = async (req = request, res = response) => {
   } catch (err) {
     console.error(err);
 
-    await transaction.rollback();
+    // await transaction.rollback();
 
     return res.status(500).json({
       ok: false,

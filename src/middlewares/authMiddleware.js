@@ -26,15 +26,6 @@ export const authenticateToken = async (
   try {
     const decodedToken = jwt.verify(token, SECRET_KEY);
 
-    // XXX no es necesario xk el verify da error
-    // if (new Date() > new Date(decodedToken.exp * 1000)) {
-    //   return res.status(401).json({
-    //     ok: false,
-    //     message: 'Token expirado',
-    //     expired: true
-    //   });
-    // }
-
     const dbUser = await User.findByPk(decodedToken.id);
 
     if (!dbUser) {
@@ -61,7 +52,7 @@ export const authenticateToken = async (
 
     return res.status(401).json({
       ok: false,
-      message: 'Token inválido (middleware)'
+      message: 'Token inválido'
     });
   }
 };
@@ -84,6 +75,21 @@ export const isLeader = (req = request, res = response, next) => {
     return res.status(403).json({
       ok: false,
       message: 'Se requiren permisos de líder de organización para esta acción'
+    });
+  }
+};
+
+export const isAdminOrLeader = (req = request, res = response, next) => {
+  if (
+    req.user &&
+    (req.user.role === 'LÍDER' || req.user.role === 'ADMINISTRADOR')
+  ) {
+    next();
+  } else {
+    return res.status(403).json({
+      ok: false,
+      message:
+        'Se requiren permisos de líder de organización o administrador para esta acción'
     });
   }
 };

@@ -193,6 +193,7 @@ export const create = async (req = request, res = response, next) => {
       }
     };
     await transaction.commit();
+
     return res.status(201).json({
       ok: true,
       message: 'Organización creada',
@@ -200,10 +201,12 @@ export const create = async (req = request, res = response, next) => {
     });
   } catch (err) {
     await transaction.rollback();
+
     if (err.name === 'SequelizeValidationError') {
       next(err);
     } else {
       console.error(err);
+
       return res.status(500).json({
         ok: false,
         message: 'Error al crear la Organización'

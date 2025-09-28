@@ -7,9 +7,11 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon ./src/index.js",
     "start": "node ./src/index.js",
-    "test": "set NODE_OPTIONS=--experimental-vm-modules && cross-env NODE_ENV=test jest --verbose --silent",
+    "test": "set NODE_OPTIONS=--experimental-vm-modules && cross-env NODE_ENV=test jest --verbose --detectOpenHandles",
     "test:watch": "npm run test -- --watch",
-    "test:auth": "npm run test -- --watch tests/auth.test.js"
+    "test:auth": "npm run test -- --watch tests/auth.test.js",
+    "test:users": "npm run test -- tests/users.test.js",
+    "test:orgs": "npm run test -- tests/org.test.js"
   },
   "author": "",
   "license": "ISC",
@@ -34,5 +36,8 @@
     "jest": "29.7.0",
     "nodemon": "3.1.9",
     "supertest": "7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }

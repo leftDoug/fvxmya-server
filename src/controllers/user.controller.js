@@ -82,6 +82,8 @@ export const create = async (req = request, res = response, next) => {
     let dbUser = await User.findOne({ where: { username }, transaction });
 
     if (dbUser) {
+      await transaction.rollback();
+
       return res.status(400).json({
         ok: false,
         message: 'Este nombre de usuario ya está en uso'
@@ -94,6 +96,8 @@ export const create = async (req = request, res = response, next) => {
     );
 
     if (userExists) {
+      await transaction.rollback();
+
       return res.status(400).json({
         ok: false,
         message: 'Este trabajador ya tiene un Usuario creado'
@@ -103,6 +107,8 @@ export const create = async (req = request, res = response, next) => {
     const coincidence = dbUsers.some((user) => user.area === area);
 
     if (coincidence) {
+      await transaction.rollback();
+
       return res.status(400).json({
         ok: false,
         message: 'Ya existe un trabajador con este nombre en esta Área'
@@ -140,12 +146,13 @@ export const create = async (req = request, res = response, next) => {
       data: user
     });
   } catch (err) {
+    await transaction.rollback();
+
     if (err.name === 'SequelizeValidationError') {
       next(err);
     }
 
     console.error(err);
-    await transaction.rollback();
 
     return res.status(500).json({
       ok: false,
@@ -157,6 +164,81 @@ export const create = async (req = request, res = response, next) => {
 export const update = async (req = request, res = response, next) => {
   const { id } = req.params;
   const { name, occupation, area, role } = req.body;
+  const transaction = await sequelize.transaction();
+
+  try {
+    let dbUser = await User.findByPk(id, { transaction });
+    const dbUsers = await User.findAll({ where: { name }, transaction });
+
+    const userExists = dbUsers.some(
+      (usr) =>
+        usr.id !== dbUser.id &&
+        usr.occupation === occupation &&
+        usr.area === area
+    );
+
+    if (userExists) {
+      return res.status(400).json({
+        ok: false,
+        message: 'Este trabajador ya tiene un Usuario creado'
+      });
+    }
+
+    const coincidence = dbUsers.some(
+      (usr) => usr.id !== dbUser.id && usr.area === area
+    );
+
+    if (coincidence) {
+      return res.status(400).json({
+        ok: false,
+        message: 'Ya existe un trabajador con este nombre en esta Área'
+      });
+    }
+
+    // TODO hacer los update asi
+    if (name) dbUser.name = name;
+    if (occupation) dbUser.occupation = occupation;
+    if (area) dbUser.area = area;
+    if (role) dbUser.role = role;
+
+    await dbUser.save({ transaction });
+
+    const user = {
+      id: dbUser.id,
+      username: dbUser.username,
+      name: dbUser.name,
+      occupation: dbUser.occupation,
+      area: dbUser.area,
+      role: dbUser.role,
+      state: dbUser.state
+    };
+
+    await transaction.commit();
+
+    return res.json({
+      ok: true,
+      message: 'Usuario actualizado',
+      data: user
+    });
+  } catch (err) {
+    if (err.name === 'SequelizeValidationError') {
+      next(err);
+    }
+
+    console.error(err);
+
+    await transaction.rollback();
+
+    return res.status(500).json({
+      ok: false,
+      message: 'Error al actualizar el Usuario'
+    });
+  }
+};
+
+export const changePassword = async (req = request, res = response, next) => {
+  const { id } = req.params;
+  const { password } = req.body;
   const transaction = await sequelize.transaction();
 
   try {

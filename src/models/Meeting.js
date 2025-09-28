@@ -8,14 +8,47 @@ export const Meeting = sequelize.define(
     name: {
       type: DataTypes.STRING,
       allowNull: false
+      // validate: {
+      //   notNull: {
+      //     msg: 'El nombre de la reunión es obligatorio'
+      //   },
+      //   len: {
+      //     args: [5, 70],
+      //     msg: 'El nombre de la reunión debe tener entre 5 y 70 caracteres'
+      //   },
+      //   isAlphanumeric: {
+      //     msg: 'El nombre de la reunión solo puede contener letras y números'
+      //   }
+      // }
     },
     session: {
       type: DataTypes.ENUM('ORDINARIA', 'EXTRAORDINARIA'),
       allowNull: false
+      // validate: {
+      //   notNull: {
+      //     msg: 'La sesión de la reunión es obligatoria'
+      //   },
+      //   isIn: {
+      //     args: [['ORDINARIA', 'EXTRAORDINARIA']],
+      //     msg: 'La sesión de la reunión debe ser ORDINARIA o EXTRAORDINARIA'
+      //   }
+      // }
     },
     date: {
       type: DataTypes.DATEONLY,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        notNull: {
+          msg: 'La fecha de la reunión es obligatoria'
+        },
+        isDate: {
+          msg: 'La fecha de la reunión debe ser una fecha válida'
+        },
+        isAfter: {
+          args: new Date().toISOString().split('T')[0],
+          msg: 'La fecha de la reunión debe ser posterior a la fecha actual'
+        }
+      }
     },
     startTime: {
       type: DataTypes.TIME,

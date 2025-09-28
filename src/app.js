@@ -1,7 +1,9 @@
 import cors from 'cors';
 import express from 'express';
+import path from 'path';
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import { fileURLToPath } from 'url'; // Importing 'url' to use __dirname in ES modules
 
 import authRoutes from './routes/auth.routes.js';
 import barFooRoutes from './routes/bar-foo.routes.js';
@@ -15,6 +17,9 @@ import responsesRoutes from './routes/responses.routes.js';
 import topicsRoutes from './routes/topics.routes.js';
 import typesOfMeetingsRoutes from './routes/types-of-meetings.routes.js';
 import usersRoutes from './routes/users.routes.js';
+
+const __filename = fileURLToPath(import.meta.url); // Getting the current file name in ES modules
+const __dirname = path.dirname(__filename); // Getting the directory name of the current file
 
 // create express application/server
 const app = express();
@@ -54,6 +59,12 @@ const swaggerSpec = swaggerJSDoc(options);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.use(express.static(path.join(__dirname, '../public')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // routes
 app.use('', barFooRoutes);
 app.use('/api/auth', authRoutes);
@@ -65,12 +76,12 @@ app.use('/api/responses', responsesRoutes);
 app.use('/api/agreements', agreementsRoutes);
 app.use('/api/topics', topicsRoutes);
 app.use('/api/users', usersRoutes);
-app.use((req, res) => {
-  return res.status(404).json({
-    ok: false,
-    message: 'Ruta no encontrada'
-  });
-});
+// app.use((req, res) => {
+//   return res.status(404).json({
+//     ok: false,
+//     message: 'Ruta no encontrada'
+//   });
+// });
 app.use(validateFields);
 
 export default app;

@@ -431,7 +431,7 @@ export const getById = async (req = request, res = response) => {
   }
 };
 
-export const create = async (req = request, res = response) => {
+export const create = async (req = request, res = response, next) => {
   const {
     name,
     session,
@@ -444,28 +444,28 @@ export const create = async (req = request, res = response) => {
     guests,
     topics
   } = req.body;
-  const newMeeting = {
-    date,
-    startTime,
-    endTime,
-    session,
-    idTypeOfMeeting
-  };
-  const newDate = setDateToDb(date);
-  const newStart = setTimeToDb(startTime);
-  const newEnd = setTimeToDb(endTime);
-  const newParticipants = members
-    .map((m) => {
-      return { id: m.id, member: true };
-    })
-    .concat(
-      guests.map((g) => {
-        return { id: g.id, member: false };
-      })
-    );
   const transaction = await sequelize.transaction();
 
   try {
+    const newMeeting = {
+      date,
+      startTime,
+      endTime,
+      session,
+      idTypeOfMeeting
+    };
+    const newDate = setDateToDb(date);
+    const newStart = setTimeToDb(startTime);
+    const newEnd = setTimeToDb(endTime);
+    const newParticipants = members
+      .map((m) => {
+        return { id: m.id, member: true };
+      })
+      .concat(
+        guests.map((g) => {
+          return { id: g.id, member: false };
+        })
+      );
     const dbMeetings = await Meeting.findAll({
       where: { date: newDate },
       transaction
@@ -583,13 +583,25 @@ export const create = async (req = request, res = response) => {
       data: meeting
     });
   } catch (err) {
-    console.error(err);
     await transaction.rollback();
 
-    return res.status(500).json({
-      ok: false,
-      message: 'Error al crear la Reunión'
-    });
+    if (err.name === 'SequelizeValidationError') {
+      const errors = err.errors.map((error) => ({
+        message: error.message
+      }));
+
+      return res.status(400).json({
+        ok: false,
+        message: errors[0].message
+      });
+    } else {
+      console.error(err);
+
+      return res.status(500).json({
+        ok: false,
+        message: 'Error al crear la Reunión'
+      });
+    }
   }
 };
 
